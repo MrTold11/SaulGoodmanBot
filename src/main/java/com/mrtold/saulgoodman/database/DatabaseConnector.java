@@ -138,6 +138,7 @@ public class DatabaseConnector {
             } else {
                 log.warn("Suspicious discord id change of client w/ pass {}: {} -> {}.",
                         passport, old.getDsUserId(), dsId);
+                clientsByDiscord.remove(old.getDsUserId());
             }
         }
 
@@ -145,8 +146,11 @@ public class DatabaseConnector {
             old.setName(name);
         old.setDsUserId(dsId);
         old.setSigned(signed);
-        if (passport != null)
+        if (passport != null) {
+            if (passport != old.getPassport())
+                clientsByPass.remove(old.getPassport());
             old.setPassport(passport);
+        }
         old.setDsUserChannel(dsChannelId);
 
         return saveClient(old);

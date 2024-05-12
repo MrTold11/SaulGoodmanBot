@@ -149,6 +149,7 @@ public class CommandAdapter extends ListenerAdapter {
                 client = db.getClient(targetMember.getIdLong(), passport);
                 if (client != null) {
                     db.updateClient(passport, targetMember.getIdLong(), client.getName(), client.getDsUserChannel(), false);
+                    passport = client.getPassport();
                 }
 
                 mcd = MessageCreateData.fromEmbeds(
@@ -171,7 +172,10 @@ public class CommandAdapter extends ListenerAdapter {
 
                 if (client != null && client.getDsUserChannel() != -1) {
                     personalChannel = event.getGuild().getTextChannelById(client.getDsUserChannel());
-                    if (personalChannel != null) personalChannel.sendMessage(mcd).queue();
+                    if (personalChannel != null) {
+                        personalChannel.sendMessage(mcd).queue();
+                        archivePersonalChannel(event.getGuild(), personalChannel);
+                    }
                 }
 
                 guild.removeRoleFromMember(targetMember, guild.getRoleById(dsUtils.getClientRoleId())).queue();
@@ -289,6 +293,16 @@ public class CommandAdapter extends ListenerAdapter {
                         dsUtils.dict("embed.footer.icon"));
     }
 
+    private void archivePersonalChannel(Guild guild, TextChannel channel) {
+        if (channel == null) return;
+
+        if (channel.getParentCategory() == null ||
+                !channel.getParentCategory().getName().equalsIgnoreCase("архив")) {
+            TextChannelManager permManager = channel.getManager();
+            permManager.setParent(guild.getCategoriesByName("архив", true).get(0)).queue();
+        }
+    }
+
     @SuppressWarnings("ResultOfMethodCallIgnored")
     private TextChannel createPersonalChannel(Guild guild, long cId, String name, long dsUId, @Nullable Advocate advocate) {
         TextChannel channel = null;
@@ -303,6 +317,12 @@ public class CommandAdapter extends ListenerAdapter {
         }
 
         TextChannelManager permManager = channel.getManager();
+
+        if (channel.getParentCategory() == null ||
+                !channel.getParentCategory().getName().equalsIgnoreCase("клиенты")) {
+            permManager.setParent(guild.getCategoriesByName("клиенты", true).get(0));
+        }
+
         permManager.putMemberPermissionOverride(dsUId,
                 Permission.getRaw(Permission.VIEW_CHANNEL), 0);
         if (advocate != null)

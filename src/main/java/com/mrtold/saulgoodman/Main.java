@@ -3,6 +3,7 @@ package com.mrtold.saulgoodman;
 import com.mrtold.saulgoodman.database.DatabaseConnector;
 import com.mrtold.saulgoodman.discord.CommandAdapter;
 import com.mrtold.saulgoodman.discord.DiscordUtils;
+import com.mrtold.saulgoodman.image.DocUtils;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -33,6 +34,8 @@ public class Main {
     final JDA jda;
 
     public Main(Logger log) throws IOException {
+        DocUtils.init();
+
         Properties secrets = new Properties();
         secrets.load(new FileInputStream("scrt.properties"));
         String token = secrets.getProperty("ds_token");
