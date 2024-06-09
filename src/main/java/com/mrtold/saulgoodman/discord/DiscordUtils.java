@@ -117,29 +117,29 @@ public class DiscordUtils {
         return auditChannelId;
     }
 
-    public boolean hasClientPerms(@Nullable Member member) {
-        return hasPerms(member, clientRoleId);
+    public boolean hasNotClientPerms(@Nullable Member member) {
+        return hasNotPerms(member, clientRoleId);
     }
 
-    public boolean hasAdvocatePerms(@Nullable Member member) {
-        return hasPerms(member, advocateRoleId);
+    public boolean hasNotAdvocatePerms(@Nullable Member member) {
+        return hasNotPerms(member, advocateRoleId);
     }
 
-    public boolean hasHighPermission(@Nullable Member member) {
-        return hasPerms(member, headsRoleId);
+    public boolean hasNotHighPermission(@Nullable Member member) {
+        return hasNotPerms(member, headsRoleId);
     }
 
-    private boolean hasPerms(@Nullable Member member, long... roleIds) {
+    private boolean hasNotPerms(@Nullable Member member, long... roleIds) {
         if (member == null)
-            return false;
+            return true;
 
         if (member.hasPermission(Permission.ADMINISTRATOR))
-            return true;
+            return false;
 
         Set<Role> roles = Arrays.stream(roleIds)
                 .mapToObj(jda::getRoleById).collect(Collectors.toSet());
 
-        return member.getRoles().stream().anyMatch(roles::contains);
+        return member.getRoles().stream().noneMatch(roles::contains);
     }
 
     public @NotNull String getEmbedData(@Nullable Object o) {

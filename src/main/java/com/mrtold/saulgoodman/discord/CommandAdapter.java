@@ -76,7 +76,7 @@ public class CommandAdapter extends ListenerAdapter {
             return;
         }
 
-        if (!dsUtils.hasAdvocatePerms(event.getMember())) {
+        if (dsUtils.hasNotAdvocatePerms(event.getMember())) {
             event.reply(dsUtils.dict("cmd.err.no_perm")).setEphemeral(true).queue();
             return;
         }
@@ -157,7 +157,7 @@ public class CommandAdapter extends ListenerAdapter {
                 break;
 
             case Main.CMD_TERMINATE:
-                if (!dsUtils.hasHighPermission(event.getMember())) {
+                if (dsUtils.hasNotHighPermission(event.getMember())) {
                     event.reply(dsUtils.dict("cmd.err.no_perm")).setEphemeral(true).queue();
                     return;
                 }
@@ -219,7 +219,7 @@ public class CommandAdapter extends ListenerAdapter {
                 break;
 
             case Main.CMD_INVITE:
-                if (!dsUtils.hasHighPermission(event.getMember())) {
+                if (dsUtils.hasNotHighPermission(event.getMember())) {
                     event.reply(dsUtils.dict("cmd.err.no_perm"))
                             .setEphemeral(true).queue();
                     return;
@@ -373,7 +373,7 @@ public class CommandAdapter extends ListenerAdapter {
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
         if (event.getGuild() == null) return;
         if (event.getComponentId().equals("bill_payed")) {
-            if (!dsUtils.hasHighPermission(event.getMember())) {
+            if (dsUtils.hasNotHighPermission(event.getMember())) {
                 event.reply(dsUtils.dict("cmd.err.no_perm"))
                         .setEphemeral(true).queue();
                 return;
@@ -430,7 +430,7 @@ public class CommandAdapter extends ListenerAdapter {
                     .build();
             event.replyModal(modal).queue();
         } else if (event.getComponentId().startsWith("aReq_")) {
-            if (!dsUtils.hasAdvocatePerms(event.getMember())) {
+            if (dsUtils.hasNotAdvocatePerms(event.getMember())) {
                 event.reply(dsUtils.dict("cmd.err.no_perm"))
                         .setEphemeral(true).queue();
                 return;
