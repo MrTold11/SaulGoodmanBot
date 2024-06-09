@@ -15,7 +15,6 @@ import net.dv8tion.jda.api.interactions.commands.build.*;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
-import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +49,7 @@ public class Main {
     final DatabaseConnector db;
     final JDA jda;
 
-    public Main(Logger log) throws IOException {
+    public Main(Logger log) throws IOException, InterruptedException {
         DocUtils.init();
 
         Properties secrets = new Properties();
@@ -218,7 +217,8 @@ public class Main {
         initRequestMessage();
     }
 
-    private void initRequestMessage() {
+    private void initRequestMessage() throws InterruptedException {
+        jda.awaitReady();
         TextChannel requestChannel = Objects.requireNonNull(jda.getGuildById(dsUtils.getGuildId()))
                 .getTextChannelById(dsUtils.getRequestChannelId());
         if (requestChannel != null) {
@@ -229,7 +229,7 @@ public class Main {
             }
 
             requestChannel.sendMessage(" Если вам необходима юридическая помощь, " +
-                            "или вы просто хотите заключить соглашение с Адвокатским бюро MBA Legal Group, " +
+                            "или вы хотите заключить соглашение с Адвокатским бюро **MBA Legal Group**, " +
                             "просто нажмите на кнопку ниже 👇 ")
                     .setActionRow(Button.primary("agreement_request", "Подать заявку"))
                     .complete();

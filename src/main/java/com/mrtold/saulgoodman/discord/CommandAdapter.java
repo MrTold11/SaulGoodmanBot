@@ -396,10 +396,18 @@ public class CommandAdapter extends ListenerAdapter {
             receipt.setStatus(1);
             db.saveReceipt(receipt);
             event.getMessage().editMessage("Помечено как оплачено " +
-                    Objects.requireNonNull(event.getMember()).getAsMention() + " от " +
+                    Objects.requireNonNull(event.getMember()).getAsMention() + " " +
                     timestampFormat.format(LocalDateTime.now(timezone))).setComponents().queue();
             event.getHook().sendMessage(String.format(dsUtils.dict("str.receipt_paid"), receipt.getId())).queue();
+            updateReceiptRegistry(event.getGuild());
         } else if (event.getComponentId().equals("agreement_request")) {
+            Client client = db.getClientByDiscord(event.getUser().getIdLong());
+            if (client != null) {
+                event.reply("Вы уже подавали заявку или заключали соглашение. " +
+                        "Обратитесь к адвокатам, если хотите заключить новое!").setEphemeral(true).queue();
+                return;
+            }
+
             TextInput name = TextInput.create("agreement_request_name", "Имя, Фамилия", TextInputStyle.SHORT)
                     .setPlaceholder("Имя Фамилия (( IC ))")
                     .setMinLength(5)
@@ -414,6 +422,7 @@ public class CommandAdapter extends ListenerAdapter {
                     .setPlaceholder("Если вам необходима юридическая помощь, кратко опишите," +
                             " что произошло, и что бы вы хотели сделать")
                     .setRequired(false)
+                    .setMaxLength(1500)
                     .build();
 
             Modal modal = Modal.create("agreement_request_form", "Заявка")
@@ -498,7 +507,6 @@ public class CommandAdapter extends ListenerAdapter {
             TextChannel tc = createPersonalChannel(event.getGuild(), null,
                     "❕・" + name, dsId, null);
             client = new Client(passport, dsId, name, tc.getIdLong());
-            db.saveClient(client);
 
             Objects.requireNonNull(event.getGuild().getTextChannelById(dsUtils.getRequestsChannelId()))
                     .sendMessage(MessageCreateData.fromEmbeds(
@@ -520,6 +528,7 @@ public class CommandAdapter extends ListenerAdapter {
                             Button.danger("aReq_dec_" + passport, "Отказать"))
                     .queue();
 
+            db.saveClient(client);
             event.getHook().sendMessage("Заявка принята в обработку!" +
                     " Подробности в Вашем персональном канале ниже.").queue();
             tc.sendMessage(event.getMember().getAsMention() + """
