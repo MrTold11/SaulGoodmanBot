@@ -5,6 +5,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Date;
 
+import static jakarta.persistence.GenerationType.SEQUENCE;
+
 /**
  * @author Mr_Told
  */
@@ -13,7 +15,8 @@ import java.util.Date;
 public class Case {
 
     @Id
-    @GeneratedValue
+    @SequenceGenerator(name = "case_seq", sequenceName = "case_seq", allocationSize = 1)
+    @GeneratedValue(strategy = SEQUENCE, generator = "case_seq")
     int id;
     @Column(nullable = false)
     @NotNull

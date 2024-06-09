@@ -3,8 +3,6 @@ package com.mrtold.saulgoodman.model;
 import jakarta.persistence.*;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Date;
-
 /**
  * @author Mr_Told
  */

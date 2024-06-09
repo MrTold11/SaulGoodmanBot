@@ -13,7 +13,7 @@ import jakarta.persistence.*;
 public class AgreementCases {
 
     @Id
-    @GeneratedValue(strategy=GenerationType.AUTO)
+    @GeneratedValue
     long id;
     @Column(name = "\"case\"")
     int case_;

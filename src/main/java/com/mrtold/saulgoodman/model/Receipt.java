@@ -5,6 +5,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Date;
 
+import static jakarta.persistence.GenerationType.SEQUENCE;
+
+
 /**
  * @author Mr_Told
  */
@@ -16,7 +19,8 @@ import java.util.Date;
 public class Receipt {
 
     @Id
-    @GeneratedValue(strategy=GenerationType.AUTO)
+    @SequenceGenerator(name = "receipt_seq", sequenceName = "receipt_seq", allocationSize = 1)
+    @GeneratedValue(strategy = SEQUENCE, generator = "receipt_seq")
     int id;
     @Column(nullable = false)
     @NotNull
@@ -26,9 +30,8 @@ public class Receipt {
     int client;
     int amount;
 
-    public Receipt(int id, @NotNull Date issued, int status, int author, int client, int amount) {
-        this.id = id;
-        this.issued = issued;
+    public Receipt(int status, int author, int client, int amount) {
+        this.issued = new Date();
         this.status = status;
         this.author = author;
         this.client = client;

@@ -17,7 +17,8 @@ public class DiscordUtils {
 
     final JDA jda;
     long clientRoleId, advocateRoleId, headsRoleId;
-    long clientRegistryChannelId, auditChannelId;
+    long clientRegistryChannelId, auditChannelId, requestChannelId, requestsChannelId;
+    long guildId;
 
     Map<String, String> dict = new HashMap<>();
 
@@ -62,6 +63,33 @@ public class DiscordUtils {
 
     public DiscordUtils setAuditChannelId(long id) {
         auditChannelId = id;
+        return this;
+    }
+
+    public long getGuildId() {
+        return guildId;
+    }
+
+    public DiscordUtils setGuildId(long guildId) {
+        this.guildId = guildId;
+        return this;
+    }
+
+    public long getRequestsChannelId() {
+        return requestsChannelId;
+    }
+
+    public DiscordUtils setRequestsChannelId(long requestsChannelId) {
+        this.requestsChannelId = requestsChannelId;
+        return this;
+    }
+
+    public long getRequestChannelId() {
+        return requestChannelId;
+    }
+
+    public DiscordUtils setRequestChannelId(long requestChannelId) {
+        this.requestChannelId = requestChannelId;
         return this;
     }
 

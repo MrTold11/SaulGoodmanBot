@@ -112,6 +112,13 @@ public class DatabaseConnector {
         }
     }
 
+    public @NotNull List<Receipt> getActiveReceipts() {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Receipt R where R.status = 0 order by R.id asc",
+                    Receipt.class).getResultList();
+        }
+    }
+
     public @Nullable Agreement getAgreementById(long id) {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery("from Agreement A where A.id = :aId",
@@ -142,6 +149,15 @@ public class DatabaseConnector {
         }
     }
 
+    public @Nullable Receipt getReceipt(int id) {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Receipt R where R.id = :rid",
+                    Receipt.class).setParameter("rid", id).getSingleResult();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public @NotNull List<Client> getAllClients() {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery("from Client", Client.class).getResultList();
@@ -161,16 +177,8 @@ public class DatabaseConnector {
         sessionFactory.inTransaction(session -> session.merge(agreement));
     }
 
-    public void updateClient(Integer passport, long dsId, String name, Long dsChannelId) {
-        Client old = getClientByPass(passport);
-        if (old == null) {
-            saveClient(new Client(passport, dsId, name, dsChannelId));
-            return;
-        } else if (old.getDsUserId() != null && old.getDsUserId() != dsId) {
-            log.warn("Suspicious discord id change of client w/ pass {}: {} -> {}.",
-                    passport, old.getDsUserId(), dsId);
-        }
-        updateClient(old, dsId, name, dsChannelId);
+    public Receipt saveReceipt(@NotNull Receipt receipt) {
+        return sessionFactory.fromTransaction(session -> session.merge(receipt));
     }
 
     public void updateClient(@NotNull Client old, long dsId, String name, Long dsChannelId) {
@@ -178,6 +186,10 @@ public class DatabaseConnector {
         old.setDsUserId(dsId);
         old.setDsUserChannel(dsChannelId);
         saveClient(old);
+    }
+
+    public void deleteClient(@NotNull Client client) {
+        sessionFactory.inTransaction(session -> session.remove(client));
     }
 
     public void close() {
