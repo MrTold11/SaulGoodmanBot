@@ -1,9 +1,8 @@
 package com.mrtold.saulgoodman.database;
 
-import com.mrtold.saulgoodman.model.Advocate;
-import com.mrtold.saulgoodman.model.Client;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
+import com.mrtold.saulgoodman.model.*;
+import jakarta.persistence.NoResultException;
+import jakarta.persistence.NonUniqueResultException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.MetadataSources;
@@ -14,10 +13,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author Mr_Told
@@ -26,9 +22,6 @@ public class DatabaseConnector {
 
     final Logger log;
     final SessionFactory sessionFactory;
-    final Map<Integer, Client> clientsByPass = new HashMap<>();
-    final Map<Long, Client> clientsByDiscord = new HashMap<>();
-    final Map<Long, Advocate> advocatesByDiscord = new HashMap<>();
 
     public DatabaseConnector(String ip, int port, String database, String user, String pass) {
         log = LoggerFactory.getLogger(DatabaseConnector.class);
@@ -49,119 +42,142 @@ public class DatabaseConnector {
                     new MetadataSources(registry)
                             .addAnnotatedClass(Client.class)
                             .addAnnotatedClass(Advocate.class)
+                            .addAnnotatedClass(Agreement.class)
+                            .addAnnotatedClass(AgreementCases.class)
+                            .addAnnotatedClass(Case.class)
+                            .addAnnotatedClass(Receipt.class)
                             .buildMetadata()
                             .buildSessionFactory();
-            init();
         }
         catch (Exception e) {
             StandardServiceRegistryBuilder.destroy(registry);
             throw e;
         }
+        init();
     }
 
     private void init() {
-        Session session = getSessionFactory().openSession();
-        List<Client> clients = loadAllData(Client.class, session);
-        for (Client client : clients) {
-            addClient(client);
-        }
-        List<Advocate> advocates = loadAllData(Advocate.class, session);
-        for (Advocate advocate : advocates) {
-            if (advocate != null)
-                advocatesByDiscord.put(advocate.getDsUserId(), advocate);
-        }
-        session.close();
+        sessionFactory.inTransaction(session -> session.merge(
+                new Client(0, 0L, "System Client", null)));
     }
 
-    private Client addClient(@Nullable Client client) {
-        if (client != null) {
-            clientsByPass.put(client.getPassport(), client);
-            clientsByDiscord.put(client.getDsUserId(), client);
-        }
-        return client;
-    }
-
-    private <T> List<T> loadAllData(Class<T> type, Session session) {
-        CriteriaBuilder builder = session.getCriteriaBuilder();
-        CriteriaQuery<T> criteria = builder.createQuery(type);
-        criteria.from(type);
-        return session.createQuery(criteria).getResultList();
-    }
-
-    public Client getClientByPass(@Nullable Integer passport) {
+    public @Nullable Client getClientByPass(@Nullable Integer passport) {
         if (passport == null) return null;
-        return clientsByPass.get(passport);
-    }
-
-    public Client getClientByDiscord(long dsId) {
-        return clientsByDiscord.get(dsId);
-    }
-
-    @Nullable public Client getClient(long dsId, Integer pass) {
-        Client client = clientsByDiscord.get(dsId);
-        if (client == null) {
-            client = getClientByPass(pass);
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Client C where C.passport = :pass", Client.class)
+                    .setParameter("pass", passport).getSingleResult();
+        } catch (Exception e) {
+            return null;
         }
-        return client;
     }
 
-    public Client getOrCreateClient(Integer passport, long dsId, String name) {
-        Client client = getClient(dsId, passport);
+    public @Nullable Client getClientByDiscord(@Nullable Long dsId) {
+        if (dsId == null) return null;
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Client C where C.dsUserId = :dsId",
+                    Client.class).setParameter("dsId", dsId).getSingleResult();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @Nullable public Client getClient(@Nullable Long dsId, Integer pass) {
+        Client client = getClientByPass(pass);
+        if (client != null)
+            return client;
+
+        return getClientByDiscord(dsId);
+    }
+
+    public @NotNull Client getOrCreateClient(Integer passport, long dsId, String name) {
+        Client client = getClientByPass(passport);
         if (client == null)
-           return saveClient(new Client(passport, dsId, name, -1, false));
+           return saveClient(new Client(passport, dsId, name, null));
         return client;
     }
 
-    public Advocate getAdvocateByDiscord(long dsId) {
-        return advocatesByDiscord.get(dsId);
+    public @Nullable Advocate getAdvocateByDiscord(long dsId) {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Advocate A where A.dsUserId = :dsId", Advocate.class)
+                    .setParameter("dsId", dsId).getSingleResult();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
-    public Client saveClient(@NotNull Client client) {
+    public @NotNull List<Agreement> getActiveAgreements() {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Agreement A where A.status = 1 order by A.id asc",
+                            Agreement.class).getResultList();
+        }
+    }
+
+    public @Nullable Agreement getAgreementById(long id) {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Agreement A where A.id = :aId",
+                    Agreement.class).setParameter("aId", id).getSingleResult();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public boolean clientHasActiveAgreement(int pass) {
+        try (Session session = sessionFactory.openSession()) {
+            session.createQuery("from Agreement A where A.client = :cPass and A.status = 1",
+                    Agreement.class).setParameter("cPass", pass).getSingleResult();
+            return true;
+        } catch (NoResultException e) {
+            return false;
+        } catch (NonUniqueResultException e) {
+            return true;
+        }
+    }
+
+    public @Nullable Agreement getActiveAgreement(int clientPass) {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Agreement A where A.client = :cPass and A.status = 1",
+                    Agreement.class).setParameter("cPass", clientPass).getSingleResult();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public @NotNull List<Client> getAllClients() {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Client", Client.class).getResultList();
+        }
+    }
+
+    public @NotNull Client saveClient(@NotNull Client client) {
         sessionFactory.inTransaction(session -> session.merge(client));
-        clientsByPass.put(client.getPassport(), client);
-        clientsByDiscord.put(client.getDsUserId(), client);
         return client;
     }
 
     public void saveAdvocate(@NotNull Advocate advocate) {
         sessionFactory.inTransaction(session -> session.merge(advocate));
-        advocatesByDiscord.put(advocate.getDsUserId(), advocate);
     }
 
-    public Client updateClient(Integer passport, long dsId, String name, long dsChannelId, boolean signed) {
-        Client old = clientsByDiscord.get(dsId);
+    public void saveAgreement(@NotNull Agreement agreement) {
+        sessionFactory.inTransaction(session -> session.merge(agreement));
+    }
 
+    public void updateClient(Integer passport, long dsId, String name, Long dsChannelId) {
+        Client old = getClientByPass(passport);
         if (old == null) {
-            old = getClientByPass(passport);
-            if (old == null) {
-                return saveClient(addClient(new Client(passport, dsId, name, dsChannelId, signed)));
-            } else {
-                log.warn("Suspicious discord id change of client w/ pass {}: {} -> {}.",
-                        passport, old.getDsUserId(), dsId);
-                clientsByDiscord.remove(old.getDsUserId());
-            }
+            saveClient(new Client(passport, dsId, name, dsChannelId));
+            return;
+        } else if (old.getDsUserId() != null && old.getDsUserId() != dsId) {
+            log.warn("Suspicious discord id change of client w/ pass {}: {} -> {}.",
+                    passport, old.getDsUserId(), dsId);
         }
+        updateClient(old, dsId, name, dsChannelId);
+    }
 
-        if (name != null)
-            old.setName(name);
+    public void updateClient(@NotNull Client old, long dsId, String name, Long dsChannelId) {
+        if (name != null) old.setName(name);
         old.setDsUserId(dsId);
-        old.setSigned(signed);
-        if (passport != null) {
-            if (passport != old.getPassport())
-                clientsByPass.remove(old.getPassport());
-            old.setPassport(passport);
-        }
         old.setDsUserChannel(dsChannelId);
-
-        return saveClient(old);
-    }
-
-    public Map<Integer, Client> getClientsByPass() {
-        return clientsByPass;
-    }
-
-    public SessionFactory getSessionFactory() {
-        return sessionFactory;
+        saveClient(old);
     }
 
     public void close() {

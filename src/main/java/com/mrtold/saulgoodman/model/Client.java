@@ -1,27 +1,30 @@
 package com.mrtold.saulgoodman.model;
 
 import jakarta.persistence.*;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Date;
 
 /**
  * @author Mr_Told
  */
 @Entity
-@Table(name = "Clients")
+@Table(name = "client")
 public class Client {
 
     @Id
-    long dsUserId;
     int passport;
     String name;
-    long dsUserChannel;
-    boolean signed;
+    @Nullable
+    Long dsUserId;
+    @Nullable
+    Long dsUserChannel;
 
-    public Client(int passport, long dsUserId, String name, long dsUserChannel, boolean signed) {
+    public Client(int passport, @Nullable Long dsUserId, String name, @Nullable Long dsUserChannel) {
         this.passport = passport;
         this.dsUserId = dsUserId;
         this.name = name;
         this.dsUserChannel = dsUserChannel;
-        this.signed = signed;
     }
 
     public Client() {}
@@ -34,7 +37,8 @@ public class Client {
         this.passport = passport;
     }
 
-    public long getDsUserId() {
+    @Nullable
+    public Long getDsUserId() {
         return dsUserId;
     }
 
@@ -50,19 +54,17 @@ public class Client {
         this.name = name;
     }
 
-    public long getDsUserChannel() {
+    @Nullable
+    public Long getDsUserChannel() {
         return dsUserChannel;
     }
 
-    public void setDsUserChannel(long dsUserChannel) {
+    public void setDsUserChannel(@Nullable Long dsUserChannel) {
         this.dsUserChannel = dsUserChannel;
     }
 
-    public boolean isSigned() {
-        return signed;
+    public void setDsUserId(@Nullable Long dsUserId) {
+        this.dsUserId = dsUserId;
     }
 
-    public void setSigned(boolean signed) {
-        this.signed = signed;
-    }
 }

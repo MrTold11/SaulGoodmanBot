@@ -3,7 +3,9 @@ package com.mrtold.saulgoodman.discord;
 import com.mrtold.saulgoodman.Main;
 import com.mrtold.saulgoodman.database.DatabaseConnector;
 import com.mrtold.saulgoodman.image.DocUtils;
+import com.mrtold.saulgoodman.imgur.ImgurUtils;
 import com.mrtold.saulgoodman.model.Advocate;
+import com.mrtold.saulgoodman.model.Agreement;
 import com.mrtold.saulgoodman.model.Client;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
@@ -28,8 +30,7 @@ import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -37,13 +38,15 @@ import java.util.concurrent.ExecutionException;
  */
 public class CommandAdapter extends ListenerAdapter {
 
+    final ImgurUtils imgurUtils;
     final DiscordUtils dsUtils;
     final DatabaseConnector db;
     final Logger log;
     final ZoneId timezone = ZoneId.of("Europe/Moscow");
     final DateTimeFormatter timestampFormat = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm:ss");
 
-    public CommandAdapter(DiscordUtils dsUtils, DatabaseConnector db) {
+    public CommandAdapter(ImgurUtils imgurUtils, DiscordUtils dsUtils, DatabaseConnector db) {
+        this.imgurUtils = imgurUtils;
         this.dsUtils = dsUtils;
         this.db = db;
         this.log = LoggerFactory.getLogger(CommandAdapter.class);
@@ -62,7 +65,7 @@ public class CommandAdapter extends ListenerAdapter {
             return;
         }
 
-        if (event.getChannelIdLong() != dsUtils.getAuditChannelId()) {
+        if (!event.getName().equalsIgnoreCase(Main.CMD_NAME) && event.getChannelIdLong() != dsUtils.getAuditChannelId()) {
             event.reply(dsUtils.dict("cmd.err.no_perm")).setEphemeral(true).queue();
             return;
         }
@@ -70,7 +73,7 @@ public class CommandAdapter extends ListenerAdapter {
         Member targetMember;
         Integer passport;
         String name;
-        Message.Attachment signature;
+        Message.Attachment attachment;
         byte[] signatureB;
         Advocate advocate;
         Client client;
@@ -82,21 +85,26 @@ public class CommandAdapter extends ListenerAdapter {
         switch (event.getName().toLowerCase(Locale.ROOT)) {
             case Main.CMD_SIGN:
                 advocate = db.getAdvocateByDiscord(event.getUser().getIdLong());
-                if (advocate == null) {
+                if (advocate == null || advocate.getSignature() == null) {
                     log.error("Could not find advocate for user {}", event.getUser().getName());
                     event.reply(dsUtils.dict("cmd.err.no_perm")).setEphemeral(true).queue();
                     break;
                 }
 
-                event.deferReply().queue();
                 targetMember = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.user"), OptionMapping::getAsMember));
                 passport = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.pass"), OptionMapping::getAsInt));
                 name = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.name"), OptionMapping::getAsString));
-                signature = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.signature"), OptionMapping::getAsAttachment));
+                attachment = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.signature"), OptionMapping::getAsAttachment));
                 int num = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.num"), OptionMapping::getAsInt));
 
+                if (db.clientHasActiveAgreement(passport)) {
+                    event.reply(dsUtils.dict("cmd.err.already_has_agreement")).setEphemeral(true).queue();
+                    break;
+                }
+                event.deferReply().queue();
+
                 try {
-                    signatureB = signature.getProxy().download().get().readAllBytes();
+                    signatureB = attachment.getProxy().download().get().readAllBytes();
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -107,7 +115,8 @@ public class CommandAdapter extends ListenerAdapter {
                 client = db.getOrCreateClient(passport, targetMember.getIdLong(), name);
                 personalChannel = createPersonalChannel(event.getGuild(), client.getDsUserChannel(),
                         name, targetMember.getIdLong(), advocate);
-                db.updateClient(passport, targetMember.getIdLong(), name, personalChannel.getIdLong(), true);
+                db.updateClient(client, targetMember.getIdLong(), name, personalChannel.getIdLong());
+                db.saveAgreement(new Agreement(num, new Date(), 1, advocate.getPassport(), passport));
 
                 mcd = MessageCreateData.fromEmbeds(
                         prepareEmbedBuilder(8453888, dsUtils.dict("embed.title.sign"))
@@ -135,21 +144,34 @@ public class CommandAdapter extends ListenerAdapter {
 
             case Main.CMD_TERMINATE:
                 if (!dsUtils.hasHighPermission(event.getMember())) {
-                    event.reply(dsUtils.dict("cmd.err.no_perm"))
-                            .setEphemeral(true).queue();
+                    event.reply(dsUtils.dict("cmd.err.no_perm")).setEphemeral(true).queue();
+                    return;
+                }
+
+                targetMember = event.getOption(dsUtils.dict("cmd.arg.user"), OptionMapping::getAsMember);
+                passport = event.getOption(dsUtils.dict("cmd.arg.pass"), OptionMapping::getAsInt);
+                String reason = event.getOption(dsUtils.dict("cmd.arg.term_reason"),
+                        dsUtils.dict("str.not_spec"), OptionMapping::getAsString);
+                client = db.getClient(targetMember == null ? null : targetMember.getIdLong(), passport);
+
+                if (client == null) {
+                    event.reply(dsUtils.dict("cmd.err.client_nf")).setEphemeral(true).queue();
+                    return;
+                }
+
+                Agreement a = db.getActiveAgreement(client.getPassport());
+                if (a == null) {
+                    event.reply(dsUtils.dict("cmd.err.client_nf")).setEphemeral(true).queue();
                     return;
                 }
                 event.deferReply().queue();
+                a.setStatus(0);
+                db.saveAgreement(a);
 
-                targetMember = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.user"), OptionMapping::getAsMember));
-                passport = event.getOption(dsUtils.dict("cmd.arg.pass"), OptionMapping::getAsInt);
-                name = dsUtils.getMemberNick(targetMember);
-                String reason = event.getOption(dsUtils.dict("cmd.arg.term_reason"),
-                        dsUtils.dict("str.not_spec"), OptionMapping::getAsString);
-                client = db.getClient(targetMember.getIdLong(), passport);
-                if (client != null) {
-                    db.updateClient(passport, targetMember.getIdLong(), client.getName(), client.getDsUserChannel(), false);
-                    passport = client.getPassport();
+                passport = client.getPassport();
+                name = client.getName();
+                if (targetMember == null && client.getDsUserId() != null) {
+                    targetMember = event.getGuild().retrieveMemberById(client.getDsUserId()).complete();
                 }
 
                 mcd = MessageCreateData.fromEmbeds(
@@ -162,7 +184,7 @@ public class CommandAdapter extends ListenerAdapter {
                                                 Причина: **%s**
                                                 Автор: %s
                                                 """,
-                                        targetMember.getAsMention(),
+                                        targetMember == null ? "@" + client.getDsUserId() : targetMember.getAsMention(),
                                         dsUtils.getEmbedData(name),
                                         dsUtils.getEmbedData(passport),
                                         reason,
@@ -170,7 +192,7 @@ public class CommandAdapter extends ListenerAdapter {
 
                 event.getHook().sendMessage(mcd).queue();
 
-                if (client != null && client.getDsUserChannel() != -1) {
+                if (client.getDsUserChannel() != null) {
                     personalChannel = event.getGuild().getTextChannelById(client.getDsUserChannel());
                     if (personalChannel != null) {
                         personalChannel.sendMessage(mcd).queue();
@@ -193,8 +215,8 @@ public class CommandAdapter extends ListenerAdapter {
                 targetMember = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.user"), OptionMapping::getAsMember));
                 passport = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.pass"), OptionMapping::getAsInt));
                 name = event.getOption(dsUtils.dict("cmd.arg.name"), OptionMapping::getAsString);
-                signature = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.signature"), OptionMapping::getAsAttachment));
-                try (InputStream is = signature.getProxy().download().get()) {
+                attachment = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.signature"), OptionMapping::getAsAttachment));
+                try (InputStream is = attachment.getProxy().download().get()) {
                     signatureB = is.readAllBytes();
                 } catch (IOException | InterruptedException | ExecutionException e) {
                     throw new RuntimeException(e);
@@ -209,6 +231,14 @@ public class CommandAdapter extends ListenerAdapter {
                     advocate.setPassport(passport);
                 }
                 db.saveAdvocate(advocate);
+
+                //generate system agreement with system user
+                Agreement a1 = db.getAgreementById(100000 + passport);
+                if (a1 == null)
+                    a1 = new Agreement(100000 + passport, new Date(), 1, passport, 0);
+                else
+                    a1.setStatus(1);
+                db.saveAgreement(a1);
 
                 event.getHook().sendMessage(MessageCreateData.fromEmbeds(
                         prepareEmbedBuilder(15132410, dsUtils.dict("embed.title.invite"))
@@ -229,57 +259,137 @@ public class CommandAdapter extends ListenerAdapter {
 
                 guild.addRoleToMember(targetMember, guild.getRoleById(dsUtils.getAdvocateRoleId())).queue();
                 break;
+
+            case Main.CMD_NAME:
+                passport = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.pass"), OptionMapping::getAsInt));
+                name = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.name"), OptionMapping::getAsString));
+
+                client = db.getClientByPass(passport);
+                if (client == null) {
+                    event.reply(dsUtils.dict("cmd.err.client_nf")).setEphemeral(true).queue();
+                    return;
+                }
+
+                if (client.getName().equals(name)) {
+                    event.reply(dsUtils.dict("cmd.err.client_name_ok")).setEphemeral(true).queue();
+                    return;
+                }
+                event.deferReply().queue();
+
+                client.setName(name);
+                db.saveClient(client);
+
+                if (client.getDsUserChannel() != null) {
+                    personalChannel = event.getGuild().getTextChannelById(client.getDsUserChannel());
+                    if (personalChannel != null) {
+                        personalChannel.getManager().setName(name).queue();
+                    }
+                }
+
+                event.getHook().sendMessage(dsUtils.dict("str.data_upd_ok")).setEphemeral(true).queue();
+                break;
+            case Main.CMD_ATTACH:
+                advocate = db.getAdvocateByDiscord(event.getUser().getIdLong());
+                if (advocate == null) {
+                    event.reply(dsUtils.dict("cmd.err.no_perm"))
+                            .setEphemeral(true).queue();
+                    return;
+                }
+
+                event.deferReply().queue();
+
+                String subCmd = Objects.requireNonNull(event.getSubcommandName());
+
+                if (subCmd.equalsIgnoreCase(Main.CMD_ATTACH_PHONE)) {
+                    int phone = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.num"), OptionMapping::getAsInt));
+                    advocate.setPhone(phone);
+                } else if (subCmd.equalsIgnoreCase(Main.CMD_ATTACH_NAME)) {
+                    name = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.name"), OptionMapping::getAsString));
+                    advocate.setName(name);
+                } else {
+                    attachment = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.doc_img"), OptionMapping::getAsAttachment));
+
+                    if (subCmd.equalsIgnoreCase(Main.CMD_ATTACH_SIGNATURE)) {
+                        try (InputStream is = attachment.getProxy().download().get()) {
+                            signatureB = is.readAllBytes();
+                        } catch (IOException | InterruptedException | ExecutionException e) {
+                            throw new RuntimeException(e);
+                        }
+                        advocate.setSignature(signatureB);
+                    } else {
+                        //todo
+                        break;
+                    }
+                }
+                db.saveAdvocate(advocate);
+
+                event.getHook().sendMessage(dsUtils.dict("str.data_upd_ok")).setEphemeral(true).queue();
+                break;
             default:
                 log.warn("Unknown command {} used by {}", event.getName(), event.getUser().getName());
                 break;
         }
 
-        if (updateClientsRegistry) {
-            TextChannel registryChannel = event.getGuild().getTextChannelById(dsUtils.getClientRegistryChannelId());
+        if (updateClientsRegistry) updateClientsRegistry(event.getGuild());
+    }
 
-            if (registryChannel == null) {
-                log.error("Could not find channel for clients registry w/ id {}",
-                        dsUtils.getClientRegistryChannelId());
-                return;
-            }
+    private void updateClientsRegistry(Guild guild) {
+        TextChannel registryChannel = guild.getTextChannelById(dsUtils.getClientRegistryChannelId());
 
-            Message registry = null;
-            for (Message m : registryChannel.getHistory().retrievePast(5).complete()) {
-                if (m.getAuthor().getIdLong() == dsUtils.jda.getSelfUser().getIdLong()) {
-                    registry = m;
-                    break;
-                }
-            }
-
-            if (registry == null) {
-                registry = registryChannel.sendMessage("Реестр активных клиентов адвокатского бюро:").complete();
-            }
-
-            StringBuilder sb = new StringBuilder("Имя, Фамилия - Паспорт - Тег - Канал\n");
-            for (Client cl : db.getClientsByPass().values()) {
-                if (!cl.isSigned()) continue;
-                sb.append(cl.getName()).append(" - ").append(cl.getPassport()).append(" - ");
-                Member m = event.getGuild().retrieveMemberById(cl.getDsUserId()).complete();
-                if (m != null)
-                        sb.append(m.getAsMention());
-                else
-                    sb.append("NO");
-                sb.append(" - ");
-                if (cl.getDsUserChannel() != -1) {
-                    TextChannel c = event.getGuild().getTextChannelById(cl.getDsUserChannel());
-                    if (c != null)
-                        sb.append(c.getAsMention());
-                    else sb.append("NO");
-                } else
-                    sb.append("NO");
-                sb.append("\n");
-            }
-            registry.editMessage(MessageEditData.fromEmbeds(
-                    prepareEmbedBuilder(15132410, dsUtils.dict("embed.title.registry"))
-                            .setDescription(sb.toString())
-                            .build()
-            )).queue();
+        if (registryChannel == null) {
+            log.error("Could not find channel for clients registry w/ id {}",
+                    dsUtils.getClientRegistryChannelId());
+            return;
         }
+
+        Message registry = null;
+        for (Message m : registryChannel.getHistory().retrievePast(5).complete()) {
+            if (m.getAuthor().getIdLong() == dsUtils.jda.getSelfUser().getIdLong()) {
+                registry = m;
+                break;
+            }
+        }
+
+        if (registry == null) {
+            registry = registryChannel.sendMessage(MessageCreateData.fromEmbeds(
+                    prepareEmbedBuilder(15132410, dsUtils.dict("embed.title.registry"))
+                            .build())).complete();
+        }
+
+        StringBuilder sb = new StringBuilder("Соглашение - Имя, Фамилия - Паспорт - Тег - Канал\n");
+        Map<Integer, Client> clientMap = new HashMap<>();
+        db.getAllClients().forEach(client -> clientMap.put(client.getPassport(), client));
+
+        for (Agreement agreement : db.getActiveAgreements()) {
+            Client c = clientMap.get(agreement.getClient());
+            if (c == null || c.getPassport() == 0) continue;
+            sb
+                    .append(agreement.getNumber()).append(" - ")
+                    .append(c.getName()).append(" - ")
+                    .append(c.getPassport()).append(" - ");
+
+            try {
+                if (c.getDsUserId() == null) throw new RuntimeException();
+                Member m = guild.retrieveMemberById(c.getDsUserId()).complete();
+                sb.append(m.getAsMention());
+            } catch (Exception e) {
+                sb.append("NO");
+            }
+            sb.append(" - ");
+
+            TextChannel tc;
+            if (c.getDsUserChannel() != null
+                    && (tc = guild.getTextChannelById(c.getDsUserChannel())) != null)
+                sb.append(tc.getAsMention());
+            else sb.append("NO");
+            sb.append("\n");
+        }
+
+        registry.editMessage(MessageEditData.fromEmbeds(
+                prepareEmbedBuilder(15132410, dsUtils.dict("embed.title.registry"))
+                        .setDescription(sb.toString())
+                        .build()
+        )).queue();
     }
 
     private EmbedBuilder prepareEmbedBuilder(int color, String title) {
@@ -304,9 +414,10 @@ public class CommandAdapter extends ListenerAdapter {
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored")
-    private TextChannel createPersonalChannel(Guild guild, long cId, String name, long dsUId, @Nullable Advocate advocate) {
+    private TextChannel createPersonalChannel(Guild guild, Long cId, String name, long dsUId,
+                                              @Nullable Advocate advocate) {
         TextChannel channel = null;
-        if (cId != -1) {
+        if (cId != null) {
             channel = guild.getTextChannelById(cId);
         }
 
@@ -314,6 +425,8 @@ public class CommandAdapter extends ListenerAdapter {
             channel = guild.createTextChannel(name,
                             guild.getCategoriesByName("клиенты", true).get(0))
                     .complete();
+        } else {
+            channel.getManager().setName(name).queue();
         }
 
         TextChannelManager permManager = channel.getManager();

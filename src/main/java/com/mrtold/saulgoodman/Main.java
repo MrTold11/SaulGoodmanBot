@@ -4,6 +4,7 @@ import com.mrtold.saulgoodman.database.DatabaseConnector;
 import com.mrtold.saulgoodman.discord.CommandAdapter;
 import com.mrtold.saulgoodman.discord.DiscordUtils;
 import com.mrtold.saulgoodman.image.DocUtils;
+import com.mrtold.saulgoodman.imgur.ImgurUtils;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -27,8 +28,17 @@ public class Main {
     public static final String CMD_SIGN = "sign";
     public static final String CMD_TERMINATE = "terminate";
     public static final String CMD_INVITE = "invite";
+    public static final String CMD_NAME = "name";
+    public static final String CMD_CLAIM = "claim";
+    public static final String CMD_ATTACH = "attach";
+    public static final String CMD_ATTACH_PASS = "паспорт";
+    public static final String CMD_ATTACH_LICENSE = "лицензия";
+    public static final String CMD_ATTACH_SIGNATURE = "подпись";
+    public static final String CMD_ATTACH_PHONE = "телефон";
+    public static final String CMD_ATTACH_NAME = "имя";
 
     final CLI cli;
+    final ImgurUtils imgurUtils;
     final DiscordUtils dsUtils;
     final DatabaseConnector db;
     final JDA jda;
@@ -40,6 +50,11 @@ public class Main {
         secrets.load(new FileInputStream("scrt.properties"));
         String token = secrets.getProperty("ds_token");
         String dbPwd = secrets.getProperty("db_pass");
+        String imgurClientId = secrets.getProperty("imgur_client_id");
+        String dbHost = secrets.getProperty("db_host", "localhost");
+        int dbPort = Integer.parseInt(secrets.getProperty("db_port", "5432"));
+        String dbName = secrets.getProperty("db_name", "mba_lg");
+        String dbUser = secrets.getProperty("db_user", "saulgoodman");
 
         if (token == null || token.isBlank()) {
             log.error("No token (ds_token) provided in scrt.properties! Exiting.");
@@ -49,8 +64,14 @@ public class Main {
             log.error("No database password (db_pass) provided in scrt.properties! Exiting.");
             System.exit(1);
         }
+        if (imgurClientId == null || imgurClientId.isBlank()) {
+            log.error("No imgur client ID (imgur_client_id) provided in scrt.properties! Exiting.");
+            System.exit(1);
+        }
 
-        db = new DatabaseConnector("localhost", 5432, "pacific_uni", "pacific", dbPwd);
+        imgurUtils = new ImgurUtils(imgurClientId);
+
+        db = new DatabaseConnector(dbHost, dbPort, dbName, dbUser, dbPwd);
 
         jda = JDABuilder.createLight(token, Collections.emptyList())
                 .setActivity(Activity.watching("за правосудием на Sunrise"))
@@ -71,21 +92,38 @@ public class Main {
                         "cmd.desc.terminate", "Расторгнуть соглашение с клиентом",
                         "cmd.name.invite", CMD_INVITE,
                         "cmd.desc.invite", "Принять нового адвоката",
+                        "cmd.name.name", CMD_NAME,
+                        "cmd.desc.name", "Изменить имя, фамилию клиента",
+                        "cmd.name.claim", CMD_CLAIM,
+                        "cmd.desc.claim", "Сформировать шаблон иска",
+                        "cmd.name.attach", CMD_ATTACH,
+                        "cmd.desc.attach", "Прикрепить документ адвоката",
                         "cmd.arg.num", "номер",
                         "cmd.arg.user", "пользователь",
                         "cmd.arg.name", "имя-фамилия",
                         "cmd.arg.pass", "паспорт",
                         "cmd.arg.signature", "подпись",
                         "cmd.arg.term_reason", "причина",
-                        "cmd.desc.num", "Укажите порядковый номер соглашения",
-                        "cmd.desc.user", "Выберите пользователя или укажите его ID",
-                        "cmd.desc.name", "Укажите имя фамилию клиента",
-                        "cmd.desc.pass", "Укажите номер паспорта клиента",
-                        "cmd.desc.signature", "Картинка подписи в виде приложения",
-                        "cmd.desc.term_reason", "Укажите причину расторжения",
+                        "cmd.arg.doc_img", "документ",
+                        "cmd.arg.phone", "телефон",
+                        "arg.desc.num", "Укажите порядковый номер соглашения",
+                        "arg.desc.user", "Выберите пользователя или укажите его ID",
+                        "arg.desc.name", "Укажите имя фамилию",
+                        "arg.desc.pass", "Укажите номер паспорта",
+                        "arg.desc.signature", "Картинка подписи",
+                        "arg.desc.term_reason", "Укажите причину расторжения",
+                        "arg.desc.pass_img", "Картинка паспорта",
+                        "arg.desc.doc_img", "Картинка документа",
+                        "arg.desc.phone", "Номер телефона",
+                        "sub.desc.pass", "Приложить картинку паспорта",
+                        "sub.desc.license", "Приложить картинку лицензии адвоката",
                         "str.not_spec", "Не указано",
+                        "str.data_upd_ok", "Данные успешно добавлены (обновлены)!",
                         "cmd.err.no_perm", "У вас нет разрешения на использование этой команды.",
-                        "cmd.err.no_guild", "Команду можно использовать только на сервере",
+                        "cmd.err.no_guild", "Команду можно использовать только на сервере.",
+                        "cmd.err.client_nf", "Клиент не найден.",
+                        "cmd.err.client_name_ok", "Имя клиента уже соответствует заданному.",
+                        "cmd.err.already_has_agreement", "С клиентом уже заключено соглашение.",
                         "embed.author.name", "GTA 5 RP | Секретарь Джейсона Мориса",
                         "embed.author.url", null,
                         "embed.author.icon", "https://i.imgur.com/IKvjkjp.png",
@@ -96,32 +134,57 @@ public class Main {
                         "embed.title.terminate", "Расторжение договора",
                         "embed.title.registry", "Реестр клиентов");
 
-        jda.addEventListener(new CommandAdapter(dsUtils, db));
+        jda.addEventListener(new CommandAdapter(imgurUtils, dsUtils, db));
 
         OptionData userOpt = new OptionData(OptionType.USER, dsUtils.dict("cmd.arg.user"),
-                dsUtils.dict("cmd.desc.user"), true);
+                dsUtils.dict("arg.desc.user"), true);
+        OptionData userOptNotReq = new OptionData(OptionType.USER, dsUtils.dict("cmd.arg.user"),
+                dsUtils.dict("arg.desc.user"), false);
         OptionData nameOpt = new OptionData(OptionType.STRING, dsUtils.dict("cmd.arg.name"),
-                dsUtils.dict("cmd.desc.name"), true);
+                dsUtils.dict("arg.desc.name"), true);
         OptionData passOpt = new OptionData(OptionType.INTEGER, dsUtils.dict("cmd.arg.pass"),
-                dsUtils.dict("cmd.desc.pass"), true);
+                dsUtils.dict("arg.desc.pass"), true);
+        OptionData phoneOpt = new OptionData(OptionType.INTEGER, dsUtils.dict("cmd.arg.phone"),
+                dsUtils.dict("arg.desc.phone"), true);
         OptionData numOpt = new OptionData(OptionType.INTEGER, dsUtils.dict("cmd.arg.num"),
-                dsUtils.dict("cmd.desc.num"), true);
-        OptionData signOpt = new OptionData(OptionType.ATTACHMENT, dsUtils.dict("cmd.arg.signature"),
-                dsUtils.dict("cmd.desc.signature"), true);
+                dsUtils.dict("arg.desc.num"), true);
+        OptionData signImgOpt = new OptionData(OptionType.ATTACHMENT, dsUtils.dict("cmd.arg.signature"),
+                dsUtils.dict("arg.desc.signature"), true);
+        OptionData docImgOpt = new OptionData(OptionType.ATTACHMENT, dsUtils.dict("cmd.arg.doc_img"),
+                dsUtils.dict("arg.desc.doc_img"), true);
+        OptionData passImgOpt = new OptionData(OptionType.ATTACHMENT, dsUtils.dict("cmd.arg.pass"),
+                dsUtils.dict("arg.desc.pass_img"), true);
         OptionData reasonOpt = new OptionData(OptionType.STRING, dsUtils.dict("cmd.arg.term_reason"),
-                dsUtils.dict("cmd.desc.term_reason"), true);
+                dsUtils.dict("arg.desc.term_reason"), true);
         OptionData passOptNotReq = new OptionData(OptionType.INTEGER, dsUtils.dict("cmd.arg.pass"),
-                dsUtils.dict("cmd.desc.pass"), false);
+                dsUtils.dict("arg.desc.pass"), false);
         OptionData signOptNotReq = new OptionData(OptionType.ATTACHMENT, dsUtils.dict("cmd.arg.signature"),
-                dsUtils.dict("cmd.desc.signature"), false);
+                dsUtils.dict("arg.desc.signature"), false);
 
         jda.updateCommands().addCommands(
                 generateMemberCommand("cmd.name.sign", "cmd.desc.sign",
-                        numOpt, userOpt, nameOpt, passOpt, signOpt), //todo signature not required
+                        numOpt, userOpt, nameOpt, passOpt, signImgOpt), //todo signature not required
                 generateMemberCommand("cmd.name.invite", "cmd.desc.invite",
-                        userOpt, nameOpt, passOpt, signOpt),
+                        userOpt, nameOpt, passOpt, signImgOpt),
                 generateMemberCommand("cmd.name.terminate", "cmd.desc.terminate",
-                        userOpt, reasonOpt, passOptNotReq)
+                        reasonOpt, userOptNotReq, passOptNotReq),
+                generateMemberCommand("cmd.name.name", "cmd.desc.name",
+                        passOpt, nameOpt),
+                //generateMemberCommand("cmd.name.claim","cmd.desc.claim",
+                //        passImgOpt, phoneOpt),
+                Commands.slash(dsUtils.dict("cmd.name.attach"), dsUtils.dict("cmd.desc.attach"))
+                        .setGuildOnly(true)
+                        .addSubcommands(
+                                //new SubcommandData(CMD_ATTACH_PASS,
+                                //        dsUtils.dict("arg.desc.pass_img")).addOptions(docImgOpt),
+                                //new SubcommandData(CMD_ATTACH_LICENSE,
+                                //        dsUtils.dict("sub.desc.license")).addOptions(docImgOpt),
+                                new SubcommandData(CMD_ATTACH_SIGNATURE,
+                                        dsUtils.dict("arg.desc.signature")).addOptions(docImgOpt),
+                                new SubcommandData(CMD_ATTACH_PHONE,
+                                        dsUtils.dict("arg.desc.phone")).addOptions(phoneOpt),
+                                new SubcommandData(CMD_ATTACH_NAME,
+                                        dsUtils.dict("arg.desc.name")).addOptions(nameOpt))
         ).queue();
 
         cli = new CLI(this);
