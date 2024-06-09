@@ -113,6 +113,11 @@ public class CommandAdapter extends ListenerAdapter {
                     event.reply(dsUtils.dict("cmd.err.already_has_agreement")).setEphemeral(true).queue();
                     break;
                 }
+
+                if (db.getAgreementById(num) != null) {
+                    event.reply(dsUtils.dict("cmd.err.agreement_exists")).setEphemeral(true).queue();
+                    break;
+                }
                 event.deferReply().queue();
 
                 try {
@@ -381,6 +386,11 @@ public class CommandAdapter extends ListenerAdapter {
                 }
 
                 log.info("Client with pass {} was removed by admin w/ discord {}", passport, event.getUser().getId());
+
+                if (client.getDsUserChannel() != null) {
+                    personalChannel = event.getGuild().getTextChannelById(client.getDsUserChannel());
+                    if (personalChannel != null) personalChannel.delete().queue();
+                }
                 db.deleteClient(client);
                 event.getHook().sendMessage(dsUtils.dict("str.client_deleted")).queue();
                 break;

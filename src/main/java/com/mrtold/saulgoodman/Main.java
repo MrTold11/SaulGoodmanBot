@@ -144,6 +144,7 @@ public class Main {
                         "cmd.err.already_has_agreement", "С клиентом уже заключено соглашение.",
                         "cmd.err.amount_low", "Счет не может быть меньше 1$.",
                         "cmd.err.receipt_nf", "Счет не найден.",
+                        "cmd.err.agreement_exists", "Соглашение с таким номером уже существует!",
                         "embed.author.name", "GTA 5 RP | Секретарь Джейсона Мориса",
                         "embed.author.url", null,
                         "embed.author.icon", "https://i.imgur.com/IKvjkjp.png",
