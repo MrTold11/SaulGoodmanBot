@@ -35,6 +35,7 @@ public class Main {
     public static final String CMD_NAME = "name";
     public static final String CMD_CLAIM = "claim";
     public static final String CMD_RECEIPT = "bill";
+    public static final String CMD_REMOVE = "remove";
     public static final String CMD_ATTACH = "attach";
     public static final String CMD_ATTACH_PASS = "паспорт";
     public static final String CMD_ATTACH_LICENSE = "лицензия";
@@ -107,6 +108,8 @@ public class Main {
                         "cmd.desc.claim", "Сформировать шаблон иска",
                         "cmd.name.receipt", CMD_RECEIPT,
                         "cmd.desc.receipt", "Выставить чек на оплату",
+                        "cmd.name.remove", CMD_REMOVE,
+                        "cmd.desc.remove", "Удалить данные о клиенте",
                         "cmd.name.attach", CMD_ATTACH,
                         "cmd.desc.attach", "Прикрепить документ адвоката",
                         "cmd.arg.num", "номер",
@@ -133,6 +136,7 @@ public class Main {
                         "str.not_spec", "Не указано",
                         "str.data_upd_ok", "Данные успешно обновлены!",
                         "str.receipt_paid", "Счет #%d помечен как оплаченный!",
+                        "str.client_deleted", "Данные о клиенте удалены!",
                         "cmd.err.no_perm", "У вас нет разрешения на использование этой команды.",
                         "cmd.err.no_guild", "Команду можно использовать только на сервере.",
                         "cmd.err.client_nf", "Клиент не найден.",
@@ -194,6 +198,8 @@ public class Main {
                         passOpt, nameOpt),
                 generateMemberCommand("cmd.name.receipt", "cmd.desc.receipt",
                         userOpt, amountOpt, passOptNotReq),
+                generateMemberCommand("cmd.name.remove", "cmd.desc.remove",
+                        passOpt),
                 //generateMemberCommand("cmd.name.claim","cmd.desc.claim",
                 //        passImgOpt, phoneOpt),
                 Commands.slash(dsUtils.dict("cmd.name.attach"), dsUtils.dict("cmd.desc.attach"))
@@ -230,7 +236,7 @@ public class Main {
 
             requestChannel.sendMessage(" Если вам необходима юридическая помощь, " +
                             "или вы хотите заключить соглашение с Адвокатским бюро **MBA Legal Group**, " +
-                            "просто нажмите на кнопку ниже 👇 ")
+                            "просто нажмите на кнопку ниже 👇")
                     .setActionRow(Button.primary("agreement_request", "Подать заявку"))
                     .complete();
 

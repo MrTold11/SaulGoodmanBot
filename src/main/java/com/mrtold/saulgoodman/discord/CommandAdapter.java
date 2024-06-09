@@ -360,6 +360,30 @@ public class CommandAdapter extends ListenerAdapter {
                 openBill(event, targetMember, client, advocate, amount);
                 updateReceiptRegistry = true;
                 break;
+            case Main.CMD_REMOVE:
+                if (dsUtils.hasNotHighPermission(event.getMember())) {
+                    event.reply(dsUtils.dict("cmd.err.no_perm"))
+                            .setEphemeral(true).queue();
+                    return;
+                }
+                event.deferReply(true).queue();
+
+                passport = Objects.requireNonNull(event.getOption(dsUtils.dict("cmd.arg.pass"), OptionMapping::getAsInt));
+
+                client = db.getClientByPass(passport);
+                if (client == null) {
+                    event.getHook().sendMessage(dsUtils.dict("cmd.err.client_nf")).queue();
+                    return;
+                }
+                if (db.clientHasActiveAgreement(passport)) {
+                    event.getHook().sendMessage(dsUtils.dict("cmd.err.already_has_agreement")).queue();
+                    return;
+                }
+
+                log.info("Client with pass {} was removed by admin w/ discord {}", passport, event.getUser().getId());
+                db.deleteClient(client);
+                event.getHook().sendMessage(dsUtils.dict("str.client_deleted")).queue();
+                break;
             default:
                 log.warn("Unknown command {} used by {}", event.getName(), event.getUser().getName());
                 break;
