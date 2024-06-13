@@ -1,0 +1,32 @@
+{
+  "discord": {
+    "token": "",
+    "guild": 123456789,
+    "default_bill_amount": 10000,
+    "roles": {
+      "client": 123456789,
+      "advocate": 123456789,
+      "head": 123456789
+    },
+    "channels": {
+      "registry": 123456789,
+      "audit": 123456789,
+      "request": 123456789,
+      "requests": 123456789
+    },
+    "categories": {
+      "clients": "клиенты",
+      "archive": "архив"
+    }
+  },
+  "imgur": {
+    "client_id": ""
+  },
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "name": "",
+    "user": "",
+    "password": ""
+  }
+}

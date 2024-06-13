@@ -1,3 +1,3 @@
 #!/bin/sh
 
-screen -d -m -S "pacific" bash pacific.sh
+screen -d -m -S "saulgoodman" bash saulgoodman.sh

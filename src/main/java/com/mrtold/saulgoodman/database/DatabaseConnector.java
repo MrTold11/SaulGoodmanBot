@@ -1,6 +1,6 @@
 package com.mrtold.saulgoodman.database;
 
-import com.mrtold.saulgoodman.model.*;
+import com.mrtold.saulgoodman.logic.model.*;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.NonUniqueResultException;
 import org.hibernate.Session;
@@ -20,10 +20,23 @@ import java.util.*;
  */
 public class DatabaseConnector {
 
+    static DatabaseConnector instance;
+
+    public static DatabaseConnector getInstance() {
+        if (instance == null)
+            throw new IllegalStateException("Database Connector not initialized");
+        return instance;
+    }
+
+    public static DatabaseConnector init(String ip, int port, String database, String user, String pass) {
+        instance = new DatabaseConnector(ip, port, database, user, pass);
+        return instance;
+    }
+
     final Logger log;
     final SessionFactory sessionFactory;
 
-    public DatabaseConnector(String ip, int port, String database, String user, String pass) {
+    DatabaseConnector(String ip, int port, String database, String user, String pass) {
         log = LoggerFactory.getLogger(DatabaseConnector.class);
 
         StandardServiceRegistry registry = new StandardServiceRegistryBuilder()
@@ -53,6 +66,7 @@ public class DatabaseConnector {
             StandardServiceRegistryBuilder.destroy(registry);
             throw e;
         }
+
         init();
     }
 
@@ -89,7 +103,7 @@ public class DatabaseConnector {
         return getClientByDiscord(dsId);
     }
 
-    public @NotNull Client getOrCreateClient(Integer passport, long dsId, String name) {
+    public @NotNull Client getOrCreateClient(Integer passport, Long dsId, String name) {
         Client client = getClientByPass(passport);
         if (client == null)
            return saveClient(new Client(passport, dsId, name, null));
@@ -100,6 +114,15 @@ public class DatabaseConnector {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery("from Advocate A where A.dsUserId = :dsId", Advocate.class)
                     .setParameter("dsId", dsId).getSingleResult();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public @Nullable Advocate getAdvocateByPass(int pass) {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Advocate A where A.passport = :pass", Advocate.class)
+                    .setParameter("pass", pass).getSingleResult();
         } catch (Exception e) {
             return null;
         }

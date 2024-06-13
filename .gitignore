@@ -40,6 +40,6 @@ bin/
 
 ### Mac OS ###
 .DS_Store
-/dir/scrt.properties
+/dir/config.json
 /dir/logs/
 /dir/docs/

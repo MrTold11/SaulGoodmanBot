@@ -1,13 +1,25 @@
 package com.mrtold.saulgoodman.discord;
 
-import net.dv8tion.jda.api.JDA;
+import com.mrtold.saulgoodman.Config;
+import com.mrtold.saulgoodman.Main;
+import com.mrtold.saulgoodman.logic.model.Advocate;
+import com.mrtold.saulgoodman.utils.Strings;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -15,121 +27,75 @@ import java.util.stream.Collectors;
  */
 public class DiscordUtils {
 
-    final JDA jda;
-    long clientRoleId, advocateRoleId, headsRoleId;
-    long clientRegistryChannelId, auditChannelId, requestChannelId, requestsChannelId;
-    long guildId;
+    private final static Guild guild;
 
-    Map<String, String> dict = new HashMap<>();
-
-    public DiscordUtils(JDA jda) {
-        this.jda = jda;
-    }
-
-    public DiscordUtils addDict(String... strs) {
-        if (strs.length % 2 != 0)
-            throw new IllegalArgumentException("Strings must be paired (key - value)!");
-
-        for (int i = 0; i < strs.length; i+=2) {
-            if (dict.containsKey(strs[i]))
-                throw new IllegalArgumentException(
-                        String.format(Locale.getDefault(), "Dict key is already assigned: %s", strs[i]));
-
-            dict.put(strs[i], strs[i + 1]);
+    static {
+        try {
+            Main.getJDA().awaitReady();
+            guild = Main.getJDA().getGuildById(Config.getInstance().getGuildId());
+            if (guild == null)
+                throw new IllegalStateException("Could not find guild");
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to initialize discord guild", e);
         }
-
-        return this;
     }
 
-    public DiscordUtils setClientRoleId(long id) {
-        clientRoleId = id;
-        return this;
+    private final static ZoneId timezone = ZoneId.of("Europe/Moscow");
+    private final static DateTimeFormatter timestampFormat = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm:ss");
+
+    public static Guild getGuild() {
+        return guild;
     }
 
-    public DiscordUtils setAdvocateRoleId(long id) {
-        advocateRoleId = id;
-        return this;
+    public static TextChannel getAuditChannel() {
+        return guild.getTextChannelById(Config.getInstance().getAuditChannelId());
     }
 
-    public DiscordUtils setHeadsRoleId(long id) {
-        headsRoleId = id;
-        return this;
+    public static void addRoleToMember(Long dsId, long roleId) {
+        if (dsId == null) return;
+        try {
+            guild.addRoleToMember(guild.getMemberById(dsId), guild.getRoleById(roleId)).queue();
+        } catch (Exception ignored) {}
     }
 
-    public DiscordUtils setClientRegistryChannelId(long id) {
-        clientRegistryChannelId = id;
-        return this;
+    public static void removeRoleFromMember(Long dsId, long roleId) {
+        if (dsId == null) return;
+        try {
+            guild.removeRoleFromMember(guild.getMemberById(dsId), guild.getRoleById(roleId)).queue();
+        } catch (Exception ignored) {}
     }
 
-    public DiscordUtils setAuditChannelId(long id) {
-        auditChannelId = id;
-        return this;
+    public static boolean hasNotClientPerms(@Nullable Member member) {
+        return hasNotPerms(member, Config.getInstance().getClientRoleId());
     }
 
-    public long getGuildId() {
-        return guildId;
+    public static boolean hasNotAdvocatePerms(@Nullable Long dsId) {
+        if (dsId == null) return false;
+        try {
+            return hasNotAdvocatePerms(guild.retrieveMemberById(dsId).complete());
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
-    public DiscordUtils setGuildId(long guildId) {
-        this.guildId = guildId;
-        return this;
+    public static boolean hasNotAdvocatePerms(@Nullable Member member) {
+        return hasNotPerms(member, Config.getInstance().getAdvocateRoleId());
     }
 
-    public long getRequestsChannelId() {
-        return requestsChannelId;
+    public static boolean hasNotHighPermission(@Nullable Long dsId) {
+        if (dsId == null) return false;
+        try {
+            return hasNotHighPermission(guild.retrieveMemberById(dsId).complete());
+        } catch (Exception ignored) {
+            return false;
+        }
     }
 
-    public DiscordUtils setRequestsChannelId(long requestsChannelId) {
-        this.requestsChannelId = requestsChannelId;
-        return this;
+    public static boolean hasNotHighPermission(@Nullable Member member) {
+        return hasNotPerms(member, Config.getInstance().getHeadsRoleId());
     }
 
-    public long getRequestChannelId() {
-        return requestChannelId;
-    }
-
-    public DiscordUtils setRequestChannelId(long requestChannelId) {
-        this.requestChannelId = requestChannelId;
-        return this;
-    }
-
-    public String dict(String key) {
-        return dict.get(key);
-    }
-
-    public long getClientRoleId() {
-        return clientRoleId;
-    }
-
-    public long getAdvocateRoleId() {
-        return advocateRoleId;
-    }
-
-    public long getHeadsRoleId() {
-        return headsRoleId;
-    }
-
-    public long getClientRegistryChannelId() {
-        return clientRegistryChannelId;
-    }
-
-    public long getAuditChannelId() {
-        return auditChannelId;
-    }
-
-    public boolean hasNotClientPerms(@Nullable Member member) {
-        return hasNotPerms(member, clientRoleId);
-    }
-
-    public boolean hasNotAdvocatePerms(@Nullable Member member) {
-        return hasNotPerms(member, advocateRoleId);
-    }
-
-    public boolean hasNotHighPermission(@Nullable Member member) {
-        return hasNotPerms(member, headsRoleId);
-    }
-
-    private boolean hasNotPerms(@Nullable Member member, long... roleIds) {
+    private static boolean hasNotPerms(@Nullable Member member, long... roleIds) {
         if (member == null)
             return true;
 
@@ -137,19 +103,96 @@ public class DiscordUtils {
             return false;
 
         Set<Role> roles = Arrays.stream(roleIds)
-                .mapToObj(jda::getRoleById).collect(Collectors.toSet());
+                .mapToObj(member.getJDA()::getRoleById).collect(Collectors.toSet());
 
         return member.getRoles().stream().noneMatch(roles::contains);
     }
 
-    public @NotNull String getEmbedData(@Nullable Object o) {
+    public static @NotNull String getEmbedData(@Nullable Object o) {
         String str = o == null ? null : o.toString();
-        return str == null || str.isBlank() ? dict("str.not_spec") : str;
+        return str == null || str.isBlank() ? Strings.getInstance().get("str.not_spec") : str;
     }
 
-    public @Nullable String getMemberNick(@Nullable Member member) {
-        return member == null || member.getNickname() == null ?
-                null : member.getNickname();
+    public static @NotNull String getMemberAsMention(@Nullable Long dsId) {
+        if (dsId == null) return Strings.getInstance().get("str.not_spec");
+        return "<@" + dsId + ">";
+    }
+
+    @NotNull
+    public static EmbedBuilder prepareEmbedBuilder(int color, String title) {
+        Strings s = Strings.getInstance();
+        return new EmbedBuilder()
+                .setAuthor(s.get("embed.author.name"), s.get("embed.author.url"), s.get("embed.author.icon"))
+                .setTitle(title, s.get("embed.title.url"))
+                .setColor(color)
+                .setFooter(formatCurrentTime(), s.get("embed.footer.icon"));
+    }
+
+    public static String formatCurrentTime() {
+        return timestampFormat.format(LocalDateTime.now(timezone));
+    }
+
+    public static void archivePersonalChannel(TextChannel channel) {
+        if (channel == null) return;
+        Config config = Config.getInstance();
+
+        if (channel.getParentCategory() == null ||
+                !channel.getParentCategory().getName().equalsIgnoreCase(config.getArchiveCategory())) {
+            TextChannelManager permManager = channel.getManager();
+            permManager.setParent(guild.getCategoriesByName(config.getArchiveCategory(), true).get(0)).queue();
+        }
+    }
+
+    @Nullable
+    public static TextChannel getChannelById(@Nullable Long channelId) {
+        if (channelId == null) return null;
+        return guild.getTextChannelById(channelId);
+    }
+
+    @NotNull
+    @SuppressWarnings("ResultOfMethodCallIgnored")
+    public static TextChannel createPersonalChannel(Long cId, String name, @Nullable Long dsUId,
+                                                    @Nullable Advocate advocate) {
+        Config config = Config.getInstance();
+
+        TextChannel channel = null;
+        if (cId != null) {
+            channel = guild.getTextChannelById(cId);
+        }
+
+        if (channel == null) {
+            channel = guild.createTextChannel(name,
+                            guild.getCategoriesByName(config.getClientsCategory(), true).get(0))
+                    .complete();
+        } else {
+            channel.getManager().setName(name).queue();
+        }
+
+        TextChannelManager permManager = channel.getManager();
+
+        if (channel.getParentCategory() == null ||
+                !channel.getParentCategory().getName().equalsIgnoreCase(config.getClientsCategory())) {
+            permManager.setParent(guild.getCategoriesByName(config.getClientsCategory(), true).get(0));
+        }
+
+        if (dsUId != null)
+            permManager.putMemberPermissionOverride(dsUId,
+                    Permission.getRaw(Permission.VIEW_CHANNEL), 0);
+        if (advocate != null)
+            permManager.putMemberPermissionOverride(advocate.getDsUserId(),
+                    Permission.getRaw(Permission.VIEW_CHANNEL), 0);
+        permManager.queue();
+        return channel;
+    }
+
+    public static Supplier<byte[]> attachmentSupplier(Message.Attachment attachment) {
+        return () -> {
+            try {
+                return attachment.getProxy().download().get().readAllBytes();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
     }
 
 }

@@ -17,11 +17,13 @@ dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.23.1'
     implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.23.1'
 
+    implementation 'com.google.code.gson:gson:2.11.0'
+
     implementation 'org.postgresql:postgresql:42.7.3'
 
     implementation 'org.hibernate.orm:hibernate-core:6.5.2.Final'
     implementation 'org.hibernate.orm:hibernate-hikaricp:6.5.2.Final'
-    implementation "jakarta.transaction:jakarta.transaction-api"
+    implementation 'jakarta.transaction:jakarta.transaction-api'
 
     implementation 'org.apache.httpcomponents:httpclient:4.5.14'
     implementation 'org.apache.httpcomponents:httpmime:4.5.14'
