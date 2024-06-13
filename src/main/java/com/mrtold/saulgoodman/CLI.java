@@ -3,6 +3,7 @@ package com.mrtold.saulgoodman;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 /**
@@ -45,6 +46,10 @@ public class CLI extends Thread {
                         System.out.printf("Unknown command: %s\n", command);
                         break;
                 }
+            } catch (NoSuchElementException e) {
+                log.info("CLI not supported, closing CLI.");
+                run = false;
+                break;
             } catch (Exception e) {
                 e.printStackTrace(System.err);
             }
@@ -52,8 +57,10 @@ public class CLI extends Thread {
     }
 
     public void close() {
-        run = false;
-        interrupt();
+        if (run) {
+            run = false;
+            interrupt();
+        }
     }
 
 }
