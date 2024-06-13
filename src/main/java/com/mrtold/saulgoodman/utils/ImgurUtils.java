@@ -1,12 +1,12 @@
 package com.mrtold.saulgoodman.utils;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.hc.client5.http.classic.HttpClient;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
+import org.apache.hc.client5.http.impl.classic.HttpClientBuilder;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.HttpEntityContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,9 +40,9 @@ public class ImgurUtils {
 
             HttpEntity multipart = builder.build();
             post.setEntity(multipart);
-            HttpResponse response = httpClient.execute(post);
-            HttpEntity responseEntity = response.getEntity();
-            responseString = new String(responseEntity.getContent().readAllBytes());
+            try (HttpEntity responseEntity = httpClient.execute(post, HttpEntityContainer::getEntity)) {
+                responseString = new String(responseEntity.getContent().readAllBytes());
+            }
             String l = responseString.split("\"link\": \"")[1].split("\"", 2)[0];
             new URL(l);
             return l;
