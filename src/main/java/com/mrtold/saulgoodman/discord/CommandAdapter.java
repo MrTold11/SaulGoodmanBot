@@ -224,13 +224,13 @@ public class CommandAdapter extends ListenerAdapter {
                         .putMemberPermissionOverride(client.getDsUserId(),
                                 Permission.getRaw(Permission.VIEW_CHANNEL), 0)
                         .queue();
-                event.getMessage().editMessage(s.get("srt.request_accepted_by") +
+                event.getMessage().editMessage(s.get("str.request_accepted_by") +
                         Objects.requireNonNull(event.getMember()).getAsMention()).setComponents().queue();
                 event.getHook().sendMessage(s.get("str.request_accepted")).queue();
             } else {
                 db.deleteClient(client);
                 tc.delete().queue();
-                event.getMessage().editMessage(s.get("srt.request_declined_by") +
+                event.getMessage().editMessage(s.get("str.request_declined_by") +
                         Objects.requireNonNull(event.getMember()).getAsMention()).setComponents().queue();
                 event.getHook().sendMessage(s.get("str.request_declined")).queue();
             }
@@ -280,12 +280,12 @@ public class CommandAdapter extends ListenerAdapter {
                                             tc.getAsMention(),
                                             DiscordUtils.getEmbedData(desc))).build()))
                     .setActionRow(
-                            Button.success("aReq_acc_" + passport, s.get("button.request_accept")),
-                            Button.danger("aReq_dec_" + passport, s.get("button.request_decline")))
+                            Button.success("aReq_acc_" + passport, s.get("embed.button.request_accept")),
+                            Button.danger("aReq_dec_" + passport, s.get("embed.button.request_decline")))
                     .queue();
 
             db.saveClient(client);
-            event.getHook().sendMessage(s.get("message.request_accept")).queue();
+            event.getHook().sendMessage(s.get("message.request_accepted")).queue();
             tc.sendMessage(event.getMember().getAsMention() +
                     s.get("message.personal_welcome")).queue();
             tc.sendMessage(String.format(s.get("message.request_desc"), desc)).queue();

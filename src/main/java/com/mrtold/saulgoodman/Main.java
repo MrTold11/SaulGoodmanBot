@@ -2,6 +2,7 @@ package com.mrtold.saulgoodman;
 
 import com.mrtold.saulgoodman.database.DatabaseConnector;
 import com.mrtold.saulgoodman.discord.CommandAdapter;
+import com.mrtold.saulgoodman.discord.DiscordUtils;
 import com.mrtold.saulgoodman.utils.*;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -80,29 +81,29 @@ public class Main {
         jda.addEventListener(new CommandAdapter());
 
         OptionData userOpt = new OptionData(OptionType.USER, s.get("cmd.arg.user"),
-                s.get("arg.desc.user"), true);
+                s.get("cmd.arg.desc.user"), true);
         OptionData userOptNotReq = new OptionData(OptionType.USER, s.get("cmd.arg.user"),
-                s.get("arg.desc.user"), false);
+                s.get("cmd.arg.desc.user"), false);
         OptionData nameOpt = new OptionData(OptionType.STRING, s.get("cmd.arg.name"),
-                s.get("arg.desc.name"), true);
+                s.get("cmd.arg.desc.name"), true);
         OptionData passOpt = new OptionData(OptionType.INTEGER, s.get("cmd.arg.pass"),
-                s.get("arg.desc.pass"), true);
+                s.get("cmd.arg.desc.pass"), true);
         OptionData phoneOpt = new OptionData(OptionType.INTEGER, s.get("cmd.arg.phone"),
-                s.get("arg.desc.phone"), true);
+                s.get("cmd.arg.desc.phone"), true);
         OptionData numOpt = new OptionData(OptionType.INTEGER, s.get("cmd.arg.num"),
-                s.get("arg.desc.num"), true);
+                s.get("cmd.arg.desc.num"), true);
         OptionData signImgOpt = new OptionData(OptionType.ATTACHMENT, s.get("cmd.arg.signature"),
-                s.get("arg.desc.signature"), true);
+                s.get("cmd.arg.desc.signature"), true);
         OptionData docImgOpt = new OptionData(OptionType.ATTACHMENT, s.get("cmd.arg.doc_img"),
-                s.get("arg.desc.doc_img"), true);
+                s.get("cmd.arg.desc.doc_img"), true);
         OptionData reasonOpt = new OptionData(OptionType.STRING, s.get("cmd.arg.term_reason"),
-                s.get("arg.desc.term_reason"), true);
+                s.get("cmd.arg.desc.term_reason"), true);
         OptionData passOptNotReq = new OptionData(OptionType.INTEGER, s.get("cmd.arg.pass"),
-                s.get("arg.desc.pass"), false);
+                s.get("cmd.arg.desc.pass"), false);
         OptionData amountOpt = new OptionData(OptionType.INTEGER, s.get("cmd.arg.amount"),
-                s.get("arg.desc.amount"), true);
+                s.get("cmd.arg.desc.amount"), true);
 
-        Objects.requireNonNull(jda.getGuildById(config.getGuildId())).updateCommands().addCommands(
+        DiscordUtils.getGuild().updateCommands().addCommands(
                 generateMemberCommand("sign", numOpt, userOpt, nameOpt, passOpt, signImgOpt),
                 generateMemberCommand("invite", userOpt, nameOpt, passOpt, signImgOpt),
                 generateMemberCommand("terminate", reasonOpt, userOptNotReq, passOptNotReq),
@@ -114,15 +115,15 @@ public class Main {
                         .setGuildOnly(true)
                         .addSubcommands(
                                 //new SubcommandData(CMD_ATTACH_PASS,
-                                //        s.get("arg.desc.pass_img")).addOptions(docImgOpt),
+                                //        s.get("cmd.arg.desc.pass_img")).addOptions(docImgOpt),
                                 //new SubcommandData(CMD_ATTACH_LICENSE,
                                 //        s.get("sub.desc.license")).addOptions(docImgOpt),
                                 new SubcommandData(CMD_ATTACH_SIGNATURE,
-                                        s.get("arg.desc.signature")).addOptions(docImgOpt),
+                                        s.get("cmd.arg.desc.signature")).addOptions(docImgOpt),
                                 new SubcommandData(CMD_ATTACH_PHONE,
-                                        s.get("arg.desc.phone")).addOptions(phoneOpt),
+                                        s.get("cmd.arg.desc.phone")).addOptions(phoneOpt),
                                 new SubcommandData(CMD_ATTACH_NAME,
-                                        s.get("arg.desc.name")).addOptions(nameOpt))
+                                        s.get("cmd.arg.desc.name")).addOptions(nameOpt))
         ).complete();
 
         cli = new CLI(this);
@@ -142,7 +143,7 @@ public class Main {
                 }
             }
             requestChannel.sendMessage(s.get("message.request"))
-                    .setActionRow(Button.primary("agreement_request", s.get("button.request_make")))
+                    .setActionRow(Button.primary("agreement_request", s.get("embed.button.request_make")))
                     .complete();
         }
     }

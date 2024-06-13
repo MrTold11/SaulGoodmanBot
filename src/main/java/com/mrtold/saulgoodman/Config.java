@@ -4,8 +4,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * @author Mr_Told
@@ -27,8 +28,8 @@ public class Config {
     private String discordToken, imgurClientId, dbHost, dbName, dbUser, dbPass;
     private int dbPort;
 
-    public Config load(File configFile) throws FileNotFoundException {
-        JsonObject json = JsonParser.parseReader(new FileReader(configFile)).getAsJsonObject();
+    public Config load(File configFile) throws IOException {
+        JsonObject json = JsonParser.parseReader(new FileReader(configFile, StandardCharsets.UTF_8)).getAsJsonObject();
 
         JsonObject discord = json.get("discord").getAsJsonObject();
         discordToken = discord.get("token").getAsString();
