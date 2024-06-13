@@ -26,7 +26,7 @@ public class Config {
     private String clientsCategory, archiveCategory;
 
     private String discordToken, imgurClientId, dbHost, dbName, dbUser, dbPass;
-    private int dbPort;
+    private int dbPort, apiPort;
 
     public Config load(File configFile) throws IOException {
         JsonObject json = JsonParser.parseReader(new FileReader(configFile, StandardCharsets.UTF_8)).getAsJsonObject();
@@ -53,6 +53,9 @@ public class Config {
 
         JsonObject imgur = json.get("imgur").getAsJsonObject();
         imgurClientId = imgur.get("client_id").getAsString();
+
+        JsonObject api = json.get("api").getAsJsonObject();
+        apiPort = api.get("port").getAsInt();
 
         JsonObject database = json.get("database").getAsJsonObject();
         dbHost = database.get("host").getAsString();
@@ -89,6 +92,10 @@ public class Config {
 
     int getDbPort() {
         return dbPort;
+    }
+
+    int getApiPort() {
+        return apiPort;
     }
 
     public long getGuildId() {

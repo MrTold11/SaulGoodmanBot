@@ -128,6 +128,13 @@ public class DatabaseConnector {
         }
     }
 
+    public @NotNull List<Agreement> getAgreementsByAdvocate(int pass) {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Agreement A where A.advocate = :pass", Agreement.class)
+                    .setParameter("pass", pass).getResultList();
+        }
+    }
+
     public @NotNull List<Agreement> getActiveAgreements() {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery("from Agreement A where A.status = 1 order by A.id asc",

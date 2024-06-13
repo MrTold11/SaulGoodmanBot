@@ -28,5 +28,8 @@
     "name": "",
     "user": "",
     "password": ""
+  },
+  "api": {
+    "port": 8080
   }
 }

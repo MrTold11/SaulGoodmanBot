@@ -1,5 +1,6 @@
 package com.mrtold.saulgoodman;
 
+import com.mrtold.saulgoodman.api.WebApi;
 import com.mrtold.saulgoodman.database.DatabaseConnector;
 import com.mrtold.saulgoodman.discord.CommandAdapter;
 import com.mrtold.saulgoodman.discord.DiscordUtils;
@@ -54,6 +55,7 @@ public class Main {
     final Strings s;
     final Config config;
     final DatabaseConnector db;
+    final WebApi api;
 
     public Main() throws IOException, InterruptedException {
         DocUtils.init();
@@ -71,6 +73,8 @@ public class Main {
 
         db = DatabaseConnector.init(config.getDbHost(), config.getDbPort(), config.getDbName(),
                 config.getDbUser(), config.getDbPass());
+
+        api = WebApi.init(config.getApiPort());
 
         jda = JDABuilder.createLight(config.getDiscordToken(), Collections.emptyList())
                 .setActivity(Activity.watching("за правосудием на Sunrise"))
@@ -157,6 +161,7 @@ public class Main {
     }
 
     public void stop() {
+        api.close();
         jda.shutdown();
         cli.close();
         db.close();
