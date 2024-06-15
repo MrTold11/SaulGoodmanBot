@@ -152,7 +152,7 @@ public class DiscordUtils {
     @NotNull
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static TextChannel createPersonalChannel(Long cId, String name, @Nullable Long dsUId,
-                                                    @Nullable Advocate advocate) {
+                                                    @Nullable Advocate advocate, int clientPass) {
         Config config = Config.getInstance();
 
         TextChannel channel = null;
@@ -167,6 +167,9 @@ public class DiscordUtils {
         } else {
             channel.getManager().setName(name).queue();
         }
+
+        channel.getManager().setTopic(Strings.getInstance().get("str.personal_channel_topic_pass")
+                .formatted(clientPass)).queue();
 
         TextChannelManager permManager = channel.getManager();
 

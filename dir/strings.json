@@ -68,7 +68,8 @@
     "request_declined": "Вы отклонили запрос, клиент удален!",
     "request_accepted_by": "Принято адвокатом: ",
     "request_declined_by": "Отклонено адвокатом: ",
-    "request_cancelled": "Канал клиента был удален, заявка отменена."
+    "request_cancelled": "Канал клиента был удален, заявка отменена.",
+    "personal_channel_topic_pass": "Паспорт клиента: %d"
   },
   "embed": {
     "author": {

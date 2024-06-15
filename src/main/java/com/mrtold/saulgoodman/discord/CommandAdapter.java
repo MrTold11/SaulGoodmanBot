@@ -273,7 +273,8 @@ public class CommandAdapter extends ListenerAdapter {
                 return;
             }
 
-            TextChannel tc = DiscordUtils.createPersonalChannel( null, "❕・" + name, dsId, null);
+            TextChannel tc = DiscordUtils.createPersonalChannel( null, "❕・" + name, dsId,
+                    null, passport);
             client = new Client(passport, dsId, name, tc.getIdLong());
 
             Objects.requireNonNull(event.getGuild().getTextChannelById(config.getRequestsChannelId()))

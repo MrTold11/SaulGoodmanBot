@@ -68,7 +68,7 @@ public class SignAgreement extends Endpoint {
 
         Client client = db.getOrCreateClient(clientPass, clientDsId, clientName);
         TextChannel personalChannel = DiscordUtils.createPersonalChannel(client.getDsUserChannel(),
-                clientName, clientDsId, advocate);
+                clientName, clientDsId, advocate, clientPass);
         db.updateClient(client, clientDsId, clientName, personalChannel.getIdLong());
 
         db.saveAgreement(new Agreement(agreementNum, new Date(), 1, advocate.getPassport(), clientPass));
