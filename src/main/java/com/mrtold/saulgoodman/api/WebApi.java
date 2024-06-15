@@ -128,7 +128,7 @@ public class WebApi {
 
     private @NotNull Advocate authAdvocate(Long userId) {
         Advocate advocate = db.getAdvocateByDiscord(userId);
-        if (advocate == null) halt(403);
+        if (advocate == null || advocate.isNotActive()) halt(403);
         return advocate;
     }
 

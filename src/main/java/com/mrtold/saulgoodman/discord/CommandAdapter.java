@@ -71,6 +71,7 @@ public class CommandAdapter extends ListenerAdapter {
         Long clientDsId = targetMember == null ? null : targetMember.getIdLong();
         Integer passport = event.getOption(s.get("cmd.arg.pass"), OptionMapping::getAsInt);
         String name = event.getOption(s.get("cmd.arg.name"), OptionMapping::getAsString);
+        String reason;
         final Message.Attachment attachment = event.getOption(s.get("cmd.arg.signature"), OptionMapping::getAsAttachment);
 
         switch (event.getName().toLowerCase(Locale.ROOT)) {
@@ -84,7 +85,7 @@ public class CommandAdapter extends ListenerAdapter {
                 break;
 
             case Main.CMD_TERMINATE:
-                String reason = event.getOption(s.get("cmd.arg.term_reason"), s.get("str.not_spec"), OptionMapping::getAsString);
+                reason = event.getOption(s.get("cmd.arg.term_reason"), s.get("str.not_spec"), OptionMapping::getAsString);
 
                 new TerminateAgreement(advocateId, clientDsId, passport, reason)
                         .exec(successFunc.apply("str.cmd_success"), failureConsumer);
@@ -95,6 +96,12 @@ public class CommandAdapter extends ListenerAdapter {
                 //noinspection DataFlowIssue
                 new InviteAdvocate(advocateId, clientDsId, passport, name,
                         DiscordUtils.attachmentSupplier(attachment))
+                        .exec(successFunc.apply("str.cmd_success"), failureConsumer);
+                break;
+
+            case Main.CMD_UNINVITE:
+                reason = event.getOption(s.get("cmd.arg.term_reason"), s.get("str.not_spec"), OptionMapping::getAsString);
+                new UninviteAdvocate(advocateId, clientDsId, passport, reason)
                         .exec(successFunc.apply("str.cmd_success"), failureConsumer);
                 break;
 
@@ -300,7 +307,7 @@ public class CommandAdapter extends ListenerAdapter {
 
     private Advocate advocateSearch(@NotNull User user, IReplyCallback event) {
         Advocate advocate = db.getAdvocateByDiscord(user.getIdLong());
-        if (advocate == null || advocate.getSignature() == null) {
+        if (advocate == null || advocate.getSignature() == null || advocate.isNotActive()) {
             log.error("Could not find advocate for user {}", user.getName());
             event.reply(s.get("cmd.err.no_perm")).setEphemeral(true).queue();
         }

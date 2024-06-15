@@ -48,7 +48,7 @@ public class OpenBill extends Endpoint {
 
         if (advocate == null) {
             advocate = db.getAdvocateByDiscord(advocateDsId);
-            if (advocate == null || advocate.getSignature() == null) {
+            if (advocate == null || advocate.getSignature() == null || advocate.isNotActive()) {
                 log.error("Could not find advocate for user id {}", advocateDsId);
                 onFailureEP(s.get("cmd.err.no_perm"));
                 return;

@@ -110,7 +110,8 @@ public class DatabaseConnector {
         return client;
     }
 
-    public @Nullable Advocate getAdvocateByDiscord(long dsId) {
+    public @Nullable Advocate getAdvocateByDiscord(Long dsId) {
+        if (dsId == null) return null;
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery("from Advocate A where A.dsUserId = :dsId", Advocate.class)
                     .setParameter("dsId", dsId).getSingleResult();
@@ -119,7 +120,8 @@ public class DatabaseConnector {
         }
     }
 
-    public @Nullable Advocate getAdvocateByPass(int pass) {
+    public @Nullable Advocate getAdvocateByPass(Integer pass) {
+        if (pass == null) return null;
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery("from Advocate A where A.passport = :pass", Advocate.class)
                     .setParameter("pass", pass).getSingleResult();

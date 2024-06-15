@@ -16,6 +16,7 @@ public class Advocate {
     long dsUserId;
     @Expose
     byte[] signature;
+    int active;
 
     String passLink, licenseLink, signatureLink;
     Integer phone;
@@ -25,6 +26,7 @@ public class Advocate {
         this.dsUserId = dsUserId;
         this.name = name;
         this.signature = signature;
+        active = 1;
     }
 
     public Advocate(int passport, String name, long dsUserId, byte[] signature,
@@ -103,6 +105,18 @@ public class Advocate {
 
     public void setDsUserId(long dsUserId) {
         this.dsUserId = dsUserId;
+    }
+
+    public int getActive() {
+        return active;
+    }
+
+    public void setActive(int active) {
+        this.active = active;
+    }
+
+    public boolean isNotActive() {
+        return active != 1;
     }
 
 }

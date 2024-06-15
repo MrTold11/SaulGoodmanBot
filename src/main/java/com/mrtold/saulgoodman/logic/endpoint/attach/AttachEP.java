@@ -22,7 +22,7 @@ public abstract class AttachEP extends Endpoint {
     @Override
     public final void execute() {
         Advocate advocate = advocateSupplier.get();
-        if (advocate == null || advocate.getSignature() == null) {
+        if (advocate == null || advocate.getSignature() == null || advocate.isNotActive()) {
             log.error("Could not find advocate for user id {}", advocateDsId);
             onFailureEP(s.get("cmd.err.no_perm"));
             return;
