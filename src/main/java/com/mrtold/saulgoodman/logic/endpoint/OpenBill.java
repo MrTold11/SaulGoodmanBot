@@ -86,7 +86,7 @@ public class OpenBill extends Endpoint {
                                 amount)).build());
 
         r.setDs_id(DiscordUtils.getAuditChannel().sendMessage(mcd).setActionRow(
-                Button.success("bill_payed", s.get("embed.button.payed")))
+                Button.success("bill_payed_%d".formatted(r.getId()), s.get("embed.button.payed")))
                 .complete().getIdLong()
         );
         db.saveReceipt(r);

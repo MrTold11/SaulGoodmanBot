@@ -161,13 +161,15 @@ public class CommandAdapter extends ListenerAdapter {
     public void onButtonInteraction(@NotNull ButtonInteractionEvent event) {
         if (event.getGuild() == null || event.getGuild().getIdLong() != Config.getInstance().getGuildId())
             return;
-        if (event.getComponentId().equals("bill_payed")) {
+        String buttonId = event.getComponentId();
+        if (buttonId.startsWith("bill_payed_")) {
             event.deferReply(true).queue();
-            new CloseBill(event.getUser().getIdLong(), event.getMessage())
+
+            new CloseBill(event.getUser().getIdLong(), event.getMessage(), buttonId.split("_")[2])
                     .exec(
                             () -> event.getHook().sendMessage(s.get("str.receipt_paid")).queue(),
                             s -> event.getHook().sendMessage(s).queue());
-        } else if (event.getComponentId().equals("agreement_request")) {
+        } else if (buttonId.equals("agreement_request")) {
             Client client = db.getClientByDiscord(event.getUser().getIdLong());
             if (client != null) {
                 event.reply(s.get("message.already_client")).setEphemeral(true).queue();
@@ -197,7 +199,7 @@ public class CommandAdapter extends ListenerAdapter {
                     .addComponents(ActionRow.of(name), ActionRow.of(pass), ActionRow.of(desc))
                     .build();
             event.replyModal(modal).queue();
-        } else if (event.getComponentId().startsWith("aReq_")) {
+        } else if (buttonId.startsWith("aReq_")) {
             if (DiscordUtils.hasNotAdvocatePerms(event.getMember())) {
                 event.reply(s.get("cmd.err.no_perm"))
                         .setEphemeral(true).queue();
@@ -208,7 +210,7 @@ public class CommandAdapter extends ListenerAdapter {
             if (advocate == null) return;
 
             event.deferReply(true).queue();
-            int pass = Integer.parseInt(event.getComponentId().split("_")[2]);
+            int pass = Integer.parseInt(buttonId.split("_")[2]);
             Client client = db.getClientByPass(pass);
             if (client == null || client.getDsUserChannel() == null || client.getDsUserId() == null) {
                 event.getHook().sendMessage(s.get("cmd.err.client_nf")).queue();
@@ -224,7 +226,7 @@ public class CommandAdapter extends ListenerAdapter {
                 return;
             }
 
-            if (event.getComponentId().startsWith("aReq_acc_")) {
+            if (buttonId.startsWith("aReq_acc_")) {
                 Objects.requireNonNull(tc).getManager()
                         .putMemberPermissionOverride(advocate.getDsUserId(),
                                 Permission.getRaw(Permission.VIEW_CHANNEL), 0)

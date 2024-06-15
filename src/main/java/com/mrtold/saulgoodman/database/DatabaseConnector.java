@@ -245,7 +245,8 @@ public class DatabaseConnector {
         }
     }
 
-    public @Nullable Receipt getReceipt(int id) {
+    public @Nullable Receipt getReceipt(Integer id) {
+        if (id == null) return null;
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery("from Receipt R where R.id = :rid",
                     Receipt.class).setParameter("rid", id).getSingleResult();

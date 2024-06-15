@@ -6,7 +6,6 @@ import com.mrtold.saulgoodman.logic.model.Receipt;
 import net.dv8tion.jda.api.entities.Message;
 
 import java.util.Locale;
-import java.util.Objects;
 
 /**
  * @author Mr_Told
@@ -22,9 +21,14 @@ public class CloseBill extends Endpoint {
         this.num = num;
     }
 
-    public CloseBill(long advocateDsId, Message billMessage) {
+    public CloseBill(long advocateDsId, Message billMessage, String idString) {
         this.advocateDsId = advocateDsId;
         this.billMessage = billMessage;
+        try {
+            num = Integer.parseInt(idString);
+        } catch (NumberFormatException e) {
+            num = null;
+        }
     }
 
     @Override
@@ -34,16 +38,7 @@ public class CloseBill extends Endpoint {
             return;
         }
 
-        Receipt receipt;
-        try {
-            if (num == null) num = Integer.parseInt(
-                    Objects.requireNonNull(billMessage.getEmbeds().get(0).getDescription())
-                            .split(s.get("embed.reflect.body.receipt.num_label"))[1]
-                            .split(s.get("embed.reflect.body.receipt.separator"))[0]);
-            receipt = db.getReceipt(num);
-        } catch (Exception e) {
-            receipt = null;
-        }
+        Receipt receipt = db.getReceipt(num);
 
         if (receipt == null) {
             onFailureEP(s.get("cmd.err.receipt_nf"));
