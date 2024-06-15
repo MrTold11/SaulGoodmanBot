@@ -36,6 +36,11 @@ public class DatabaseConnector {
     final Logger log;
     final SessionFactory sessionFactory;
 
+    final Map<Integer, Client> clientsByPass = new HashMap<>();
+    final Map<Long, Client> clientsByDiscord = new HashMap<>();
+    final Map<Integer, Advocate> advocateByPass = new HashMap<>();
+    final Map<Long, Advocate> advocateByDiscord = new HashMap<>();
+
     DatabaseConnector(String ip, int port, String database, String user, String pass) {
         log = LoggerFactory.getLogger(DatabaseConnector.class);
 
@@ -75,24 +80,43 @@ public class DatabaseConnector {
                 new Client(0, 0L, "System Client", null)));
     }
 
+    private void cacheClient(Client client) {
+        clientsByPass.put(client.getPassport(), client);
+        if (client.getDsUserId() != null)
+            clientsByDiscord.put(client.getDsUserId(), client);
+    }
+
+    private void cacheAdvocate(Advocate advocate) {
+        advocateByPass.put(advocate.getPassport(), advocate);
+        advocateByDiscord.put(advocate.getDsUserId(), advocate);
+    }
+
     public @Nullable Client getClientByPass(@Nullable Integer passport) {
         if (passport == null) return null;
+
+        Client client = clientsByPass.get(passport);
+        if (client != null) return client;
+
         try (Session session = sessionFactory.openSession()) {
-            return session.createQuery("from Client C where C.passport = :pass", Client.class)
+            client = session.createQuery("from Client C where C.passport = :pass", Client.class)
                     .setParameter("pass", passport).getSingleResult();
-        } catch (Exception e) {
-            return null;
-        }
+            cacheClient(client);
+        } catch (Exception ignored) {}
+        return client;
     }
 
     public @Nullable Client getClientByDiscord(@Nullable Long dsId) {
         if (dsId == null) return null;
+
+        Client client = clientsByDiscord.get(dsId);
+        if (client != null) return client;
+
         try (Session session = sessionFactory.openSession()) {
-            return session.createQuery("from Client C where C.dsUserId = :dsId",
+            client = session.createQuery("from Client C where C.dsUserId = :dsId",
                     Client.class).setParameter("dsId", dsId).getSingleResult();
-        } catch (Exception e) {
-            return null;
-        }
+            cacheClient(client);
+        } catch (Exception ignored) {}
+        return client;
     }
 
     @Nullable public Client getClient(@Nullable Long dsId, Integer pass) {
@@ -112,22 +136,30 @@ public class DatabaseConnector {
 
     public @Nullable Advocate getAdvocateByDiscord(Long dsId) {
         if (dsId == null) return null;
+
+        Advocate advocate = advocateByDiscord.get(dsId);
+        if (advocate != null) return advocate;
+
         try (Session session = sessionFactory.openSession()) {
-            return session.createQuery("from Advocate A where A.dsUserId = :dsId", Advocate.class)
+            advocate = session.createQuery("from Advocate A where A.dsUserId = :dsId", Advocate.class)
                     .setParameter("dsId", dsId).getSingleResult();
-        } catch (Exception e) {
-            return null;
-        }
+            cacheAdvocate(advocate);
+        } catch (Exception ignored) {}
+        return advocate;
     }
 
     public @Nullable Advocate getAdvocateByPass(Integer pass) {
         if (pass == null) return null;
+
+        Advocate advocate = advocateByPass.get(pass);
+        if (advocate != null) return advocate;
+
         try (Session session = sessionFactory.openSession()) {
-            return session.createQuery("from Advocate A where A.passport = :pass", Advocate.class)
+            advocate = session.createQuery("from Advocate A where A.passport = :pass", Advocate.class)
                     .setParameter("pass", pass).getSingleResult();
-        } catch (Exception e) {
-            return null;
-        }
+            cacheAdvocate(advocate);
+        } catch (Exception ignored) {}
+        return advocate;
     }
 
     public @NotNull List<Agreement> getAdvocateAgreements(int pass, int limit) {
@@ -230,11 +262,13 @@ public class DatabaseConnector {
 
     public @NotNull Client saveClient(@NotNull Client client) {
         sessionFactory.inTransaction(session -> session.merge(client));
+        cacheClient(client);
         return client;
     }
 
     public void saveAdvocate(@NotNull Advocate advocate) {
         sessionFactory.inTransaction(session -> session.merge(advocate));
+        cacheAdvocate(advocate);
     }
 
     public void saveAgreement(@NotNull Agreement agreement) {
@@ -254,6 +288,9 @@ public class DatabaseConnector {
 
     public void deleteClient(@NotNull Client client) {
         sessionFactory.inTransaction(session -> session.remove(client));
+        clientsByPass.remove(client.getPassport());
+        if (client.getDsUserId() != null)
+            clientsByDiscord.remove(client.getDsUserId());
     }
 
     public void close() {
