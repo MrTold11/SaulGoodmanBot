@@ -25,6 +25,28 @@ public class WebApi {
         return instance;
     }
 
+    private static void enableCORS(final String methods, final String headers) {
+        options("/*", (request, response) -> {
+
+            String accessControlRequestHeaders = request.headers("Access-Control-Request-Headers");
+            if (accessControlRequestHeaders != null)
+                response.header("Access-Control-Allow-Headers", accessControlRequestHeaders);
+
+            String accessControlRequestMethod = request.headers("Access-Control-Request-Method");
+            if (accessControlRequestMethod != null)
+                response.header("Access-Control-Allow-Methods", accessControlRequestMethod);
+
+            return "OK";
+        });
+
+        before((request, response) -> {
+            response.header("Access-Control-Allow-Origin", request.headers("origin"));
+            response.header("Access-Control-Request-Method", methods);
+            response.header("Access-Control-Allow-Headers", headers);
+            response.header("Access-Control-Allow-Credentials", "true");
+        });
+    }
+
     final Gson gson = new Gson();
     final DatabaseConnector db;
 
@@ -34,6 +56,7 @@ public class WebApi {
         auth = new WebAuth(dsClientId, dsClientSecret, oAuth2Redirect);
         db = DatabaseConnector.getInstance();
         port(port);
+        enableCORS("*", "*");
         init();
     }
 
