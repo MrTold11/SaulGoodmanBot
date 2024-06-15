@@ -1,5 +1,6 @@
 package com.mrtold.saulgoodman.logic.model;
 
+import com.google.gson.annotations.Expose;
 import jakarta.persistence.*;
 
 /**
@@ -13,6 +14,7 @@ public class Advocate {
     int passport;
     String name;
     long dsUserId;
+    @Expose
     byte[] signature;
 
     String passLink, licenseLink, signatureLink;

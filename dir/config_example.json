@@ -1,6 +1,9 @@
 {
   "discord": {
-    "token": "",
+    "client_id": "",
+    "client_secret": "",
+    "oauth2_redirect": "",
+    "bot_token": "",
     "guild": 123456789,
     "default_bill_amount": 10000,
     "roles": {

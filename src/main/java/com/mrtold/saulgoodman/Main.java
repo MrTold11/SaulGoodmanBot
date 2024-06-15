@@ -74,7 +74,8 @@ public class Main {
         db = DatabaseConnector.init(config.getDbHost(), config.getDbPort(), config.getDbName(),
                 config.getDbUser(), config.getDbPass());
 
-        api = WebApi.init(config.getApiPort());
+        api = WebApi.init(config.getDiscordClientId(), config.getDiscordClientSecret(),
+                config.getOAuth2Redirect(), config.getApiPort());
 
         jda = JDABuilder.createLight(config.getDiscordToken(), Collections.emptyList())
                 .setActivity(Activity.watching("за правосудием на Sunrise"))

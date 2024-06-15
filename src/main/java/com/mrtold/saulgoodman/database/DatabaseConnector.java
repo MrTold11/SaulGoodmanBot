@@ -128,9 +128,32 @@ public class DatabaseConnector {
         }
     }
 
-    public @NotNull List<Agreement> getAgreementsByAdvocate(int pass) {
+    public @NotNull List<Agreement> getAdvocateAgreements(int pass, int limit) {
         try (Session session = sessionFactory.openSession()) {
-            return session.createQuery("from Agreement A where A.advocate = :pass", Agreement.class)
+            return session.createQuery(
+                    "from Agreement A where A.advocate = :pass order by A.id desc", Agreement.class)
+                    .setMaxResults(limit)
+                    .setParameter("pass", pass).getResultList();
+        }
+    }
+
+    public @NotNull List<Case> getAdvocateCases(int pass, int limit) {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery(
+                    "select C from Case C, AgreementCases AC, Agreement A " +
+                            "where A.advocate = :pass and AC.agreement = A.id and C.id = AC.case_ " +
+                            "order by C.id desc",
+                            Case.class)
+                    .setMaxResults(limit)
+                    .setParameter("pass", pass).getResultList();
+        }
+    }
+
+    public @NotNull List<Receipt> getAdvocateReceipts(int pass, int limit) {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Receipt R where R.author = :pass order by R.id desc",
+                            Receipt.class)
+                    .setMaxResults(limit)
                     .setParameter("pass", pass).getResultList();
         }
     }
@@ -149,10 +172,19 @@ public class DatabaseConnector {
         }
     }
 
-    public @Nullable Agreement getAgreementById(long id) {
+    public @Nullable Agreement getAgreementById(int id) {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery("from Agreement A where A.id = :aId",
                     Agreement.class).setParameter("aId", id).getSingleResult();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public @Nullable Case getCaseById(long id) {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Case C where C.id = :aId",
+                    Case.class).setParameter("aId", id).getSingleResult();
         } catch (Exception e) {
             return null;
         }

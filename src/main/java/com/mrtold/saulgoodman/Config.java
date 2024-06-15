@@ -25,14 +25,18 @@ public class Config {
     private int defaultBillAmount;
     private String clientsCategory, archiveCategory;
 
-    private String discordToken, imgurClientId, dbHost, dbName, dbUser, dbPass;
+    private String discordToken, discordClientId, discordClientSecret, oAuth2Redirect,
+            imgurClientId, dbHost, dbName, dbUser, dbPass;
     private int dbPort, apiPort;
 
     public Config load(File configFile) throws IOException {
         JsonObject json = JsonParser.parseReader(new FileReader(configFile, StandardCharsets.UTF_8)).getAsJsonObject();
 
         JsonObject discord = json.get("discord").getAsJsonObject();
-        discordToken = discord.get("token").getAsString();
+        discordClientId = discord.get("client_id").getAsString();
+        discordClientSecret = discord.get("client_secret").getAsString();
+        oAuth2Redirect = discord.get("oauth2_redirect").getAsString();
+        discordToken = discord.get("bot_token").getAsString();
         guildId = discord.get("guild").getAsLong();
         defaultBillAmount = discord.get("default_bill_amount").getAsInt();
 
@@ -64,6 +68,18 @@ public class Config {
         dbPass = database.get("password").getAsString();
         dbPort = database.get("port").getAsInt();
         return this;
+    }
+
+    String getDiscordClientId() {
+        return discordClientId;
+    }
+
+    String getDiscordClientSecret() {
+        return discordClientSecret;
+    }
+
+    String getOAuth2Redirect() {
+        return oAuth2Redirect;
     }
 
     String getDiscordToken() {
