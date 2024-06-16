@@ -74,7 +74,7 @@
     "request_accepted_by": "Принято адвокатом: ",
     "request_declined_by": "Отклонено адвокатом: ",
     "request_cancelled": "Канал клиента был удален, заявка отменена.",
-    "personal_channel_topic_pass": "Паспорт клиента: %d",
+    "personal_channel_topic_pass_ag": "Паспорт клиента: %d, соглашение: %s",
     "rolled_back": "(( откачено ))"
   },
   "embed": {

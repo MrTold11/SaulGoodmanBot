@@ -343,7 +343,7 @@ public class CommandAdapter extends ListenerAdapter {
             }
 
             TextChannel tc = DsUtils.createPersonalChannel( null, "❕・" + name, dsId,
-                    null, passport);
+                    null, passport, null);
             client = new Client(passport, dsId, name, tc.getIdLong());
 
             Objects.requireNonNull(event.getGuild().getTextChannelById(config.getRequestsChannelId()))

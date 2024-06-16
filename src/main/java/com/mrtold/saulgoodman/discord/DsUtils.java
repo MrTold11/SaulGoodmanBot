@@ -158,7 +158,7 @@ public class DsUtils {
     @NotNull
     @SuppressWarnings("ResultOfMethodCallIgnored")
     public static TextChannel createPersonalChannel(Long cId, String name, @Nullable Long dsUId,
-                                                    @Nullable Advocate advocate, int clientPass) {
+                                                    @Nullable Advocate advocate, int clientPass, Integer agNum) {
         Config config = Config.getInstance();
 
         TextChannel channel = null;
@@ -174,8 +174,8 @@ public class DsUtils {
             channel.getManager().setName(name).queue();
         }
 
-        channel.getManager().setTopic(Strings.getInstance().get("str.personal_channel_topic_pass")
-                .formatted(clientPass)).queue();
+        channel.getManager().setTopic(Strings.getInstance().get("str.personal_channel_topic_pass_ag")
+                .formatted(clientPass, getEmbedData(agNum))).queue();
 
         TextChannelManager permManager = channel.getManager();
 
