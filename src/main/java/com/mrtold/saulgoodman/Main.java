@@ -33,6 +33,7 @@ public class Main {
             CMD_TERMINATE = "terminate",
             CMD_INVITE = "invite",
             CMD_UNINVITE = "uninvite",
+            CMD_REQUEST = "request",
             CMD_NAME = "name",
             CMD_CLAIM = "claim",
             CMD_RECEIPT = "bill",
@@ -66,6 +67,7 @@ public class Main {
                 (s) -> s.override("cmd.name.sign", CMD_SIGN)
                         .override("cmd.name.invite", CMD_INVITE)
                         .override("cmd.name.uninvite", CMD_UNINVITE)
+                        .override("cmd.name.request", CMD_REQUEST)
                         .override("cmd.name.terminate", CMD_TERMINATE)
                         .override("cmd.name.name", CMD_NAME)
                         .override("cmd.name.receipt", CMD_RECEIPT)
@@ -114,6 +116,7 @@ public class Main {
                 generateMemberCommand("sign", numOpt, userOpt, nameOpt, passOpt, signImgOpt),
                 generateMemberCommand("invite", userOpt, nameOpt, passOpt, signImgOpt),
                 generateMemberCommand("uninvite", reasonOpt, userOptNotReq, passOptNotReq),
+                generateMemberCommand("request"),
                 generateMemberCommand("terminate", reasonOpt, userOptNotReq, passOptNotReq),
                 generateMemberCommand("name", passOpt, nameOpt),
                 generateMemberCommand("receipt", userOpt, amountOpt, passOptNotReq),

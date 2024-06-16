@@ -7,52 +7,55 @@ import java.awt.image.*;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author Mr_Told
  */
 public class DocUtils {
 
-    static final File agreement = new File("docs", "agreement.jpg");
+    static final ZoneId timezone = ZoneId.of("Europe/Moscow");
+    static final DateTimeFormatter timestampFormat = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+
     static final Font tnrPlain = new Font("Times New Roman", Font.PLAIN, 24);
     static final Font tnrItalic = new Font("Times New Roman", Font.ITALIC, 24);
     static final Font tnrTitle = new Font("Times New Roman", Font.BOLD, 28);
 
+    static final File agreement = new File("docs", "agreement.jpg");
+    static final File request = new File("docs", "request.jpg");
+
     public static void init() {
         if (!agreement.exists()) {
             throw new RuntimeException("Agreement file not found");
+        }
+        if (!request.exists()) {
+            throw new RuntimeException("Request file not found");
         }
     }
 
     public static byte[] generateAgreement(String aName, int aPass, byte[] aSign,
                                            String cName, int cPass, byte[] cSign, int num) {
         try {
-            String l11 = String.format("Частного адвоката %s", aName);
-            String l12 = String.format("c номером паспорта %d", aPass);
+            Strings s = Strings.getInstance();
+            String l11 = String.format(s.get("doc.agreement.advocate_format"), aName);
+            String l12 = String.format(s.get("doc.agreement.with_pass_format"), aPass);
 
-            String l21 = String.format("и доверителем %s", cName);
-            String l22 = String.format("c номером паспорта %d", cPass);
+            String l21 = String.format(s.get("doc.agreement.client_format"), cName);
+            String l22 = String.format(s.get("doc.agreement.with_pass_format"), cPass);
 
-            final ZoneId timezone = ZoneId.of("Europe/Moscow");
-            final DateTimeFormatter timestampFormat = DateTimeFormatter.ofPattern("dd.MM.yyyy");
             String date = timestampFormat.format(LocalDateTime.now(timezone));
             BufferedImage image = ImageIO.read(agreement);
             BufferedImage aSignI = ImageIO.read(new ByteArrayInputStream(aSign));
             BufferedImage cSignI = ImageIO.read(new ByteArrayInputStream(cSign));
 
             Graphics2D g2d = image.createGraphics();
-
-            g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
-            g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY);
-            g2d.setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_ENABLE);
-            g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
-            g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+            initG2DHints(g2d);
             g2d.setFont(tnrPlain);
             FontMetrics fm = g2d.getFontMetrics();
             g2d.setColor(Color.BLACK);
@@ -85,6 +88,157 @@ public class DocUtils {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static byte[] generateRequest(String aName, String discord, Integer phone, byte[] aSign,
+                                         String deadline, String target, String input,
+                                         int agreement, int num) {
+        try {
+            Strings s = Strings.getInstance();
+            List<String> bodyPartsIn = Arrays.stream(input
+                    .split("\n"))
+                    .filter(l -> !l.isBlank())
+                    .map(l -> l + ";")
+                    .toList();
+
+            List<String> bodyList = new ArrayList<>(bodyPartsIn.size() + 3);
+            bodyList.addAll(bodyPartsIn);
+
+            String dateNum = s.get("doc.request.date_num_format").formatted(timestampFormat.format(LocalDateTime.now(timezone)), num);
+            String numReq = s.get("doc.request.agreement_num_format").formatted(agreement);
+            String contactPhone = phone == null ? "" : s.get("doc.request.contact_phone_format").formatted(phone);
+
+            if (target != null)
+                bodyList.add(s.get("doc.request.request_to_format").formatted(target));
+
+            if (deadline != null)
+                bodyList.add(s.get("doc.request.provide_until_format").formatted(deadline));
+
+            bodyList.add(s.get("doc.request.provide_to_format")
+                    .formatted(aName, discord, contactPhone));
+
+            BufferedImage image = ImageIO.read(request);
+            BufferedImage aSignI = ImageIO.read(new ByteArrayInputStream(aSign));
+
+            Graphics2D g2d = image.createGraphics();
+
+            initG2DHints(g2d);
+            g2d.setFont(tnrPlain);
+            FontMetrics fm = g2d.getFontMetrics();
+            g2d.setColor(Color.BLACK);
+
+            g2d.drawString(dateNum, 275 - fm.stringWidth(dateNum) / 2, fm.getAscent() + 315);
+            g2d.drawString(numReq, 731, 642);
+
+            int n = 1;
+            int offset = 673;
+            for (String part : bodyList) {
+                offset = drawListElement(g2d, fm, n, part, offset);
+                n++;
+            }
+
+            g2d.setFont(tnrItalic);
+            fm = g2d.getFontMetrics();
+            g2d.drawString(aName, 600 - fm.stringWidth(aName) / 2, fm.getAscent() + 1510);
+
+            drawSignature(g2d, aSignI, 600, 1475, 300, 80);
+
+            g2d.dispose();
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            ImageIO.write(image, "jpg", os);
+            return os.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static int drawListElement(Graphics2D g2d, FontMetrics fm, int num, String content, int offset) {
+        java.util.List<String> lines = fullJustify(Arrays
+                .stream(content.split(" "))
+                .filter(s -> !s.isBlank())
+                .toArray(String[]::new), 93);
+        String numS = num < 10 ? "%d.  ".formatted(num) : "%d. ".formatted(num);
+        int yD = fm.getAscent() + 11;
+        g2d.drawString(numS, 129,  fm.getAscent() + offset);
+        for (String line : lines) {
+            g2d.drawString(line, 165, fm.getAscent() + offset);
+            offset += yD;
+        }
+        return offset + fm.getAscent();
+    }
+
+    private static java.util.List<String> fullJustify(String[] words, int maxWidth) {
+        int n = words.length;
+        List<String> justifiedText = new ArrayList<>();
+        int currLineIndex = 0;
+        int nextLineIndex = getNextLineIndex(currLineIndex, maxWidth, words);
+        while (currLineIndex < n) {
+            StringBuilder line = new StringBuilder();
+            for (int i = currLineIndex; i < nextLineIndex; i++) {
+                line.append(words[i]).append(" ");
+            }
+            currLineIndex = nextLineIndex;
+            nextLineIndex = getNextLineIndex(currLineIndex, maxWidth, words);
+            justifiedText.add(line.toString());
+        }
+        for (int i = 0; i < justifiedText.size() - 1; i++) {
+            String fullJustifiedLine = getFullJustifiedString(justifiedText.get(i).trim(), maxWidth);
+            justifiedText.set(i, fullJustifiedLine);
+        }
+        String leftJustifiedLine = getLeftJustifiedLine(justifiedText.get(justifiedText.size() - 1).trim(), maxWidth);
+        justifiedText.remove(justifiedText.size() - 1);
+        justifiedText.add(leftJustifiedLine);
+        return justifiedText;
+    }
+
+    private static int getNextLineIndex(int currLineIndex, int maxWidth, String[] words) {
+        int n = words.length;
+        int width = 0;
+        while (currLineIndex < n && width < maxWidth) {
+            width += words[currLineIndex++].length() + 1;
+        }
+        if (width > maxWidth + 1)
+            currLineIndex--;
+        return currLineIndex;
+    }
+
+    private static String getFullJustifiedString(String line, int maxWidth) {
+        StringBuilder justifiedLine = new StringBuilder();
+        String[] words = line.split(" ");
+        int occupiedCharLength = 0;
+        for (String word : words) {
+            occupiedCharLength += word.length();
+        }
+        int remainingSpace = maxWidth - occupiedCharLength;
+        int spaceForEachWordSeparation = words.length > 1 ? remainingSpace / (words.length - 1) : remainingSpace;
+        int extraSpace = remainingSpace - spaceForEachWordSeparation * (words.length - 1);
+        for (int j = 0; j < words.length - 1; j++) {
+            justifiedLine.append(words[j]);
+            justifiedLine.append(" ".repeat(Math.max(0, spaceForEachWordSeparation)));
+            if (extraSpace > 0) {
+                justifiedLine.append(" ");
+                extraSpace--;
+            }
+        }
+        justifiedLine.append(words[words.length - 1]);
+        justifiedLine.append(" ".repeat(Math.max(0, extraSpace)));
+        return justifiedLine.toString();
+    }
+
+    private static String getLeftJustifiedLine(String line, int maxWidth) {
+        int lineWidth = line.length();
+        return line + " ".repeat(Math.max(0, maxWidth - lineWidth));
+    }
+
+    private static void initG2DHints(Graphics2D g2d) {
+        g2d.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_DITHERING, RenderingHints.VALUE_DITHER_ENABLE);
+        g2d.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
     }
 
     private static void drawSignature(Graphics2D g2d, BufferedImage sign,

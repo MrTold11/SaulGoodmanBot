@@ -11,6 +11,8 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.interactions.components.text.TextInput;
+import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -200,6 +202,18 @@ public class DsUtils {
                 throw new RuntimeException(e);
             }
         };
+    }
+
+    public static TextInput formTextInput(String id, String nameDescKey, TextInputStyle style,
+                                          int minLen, int maxLen, boolean required) {
+        Strings s = Strings.getInstance();
+        return TextInput.create(id,
+                        s.get("embed.modal." + nameDescKey + ".label"), style)
+                .setPlaceholder(s.get("embed.modal." + nameDescKey + ".desc"))
+                .setMinLength(minLen)
+                .setMaxLength(maxLen)
+                .setRequired(required)
+                .build();
     }
 
 }

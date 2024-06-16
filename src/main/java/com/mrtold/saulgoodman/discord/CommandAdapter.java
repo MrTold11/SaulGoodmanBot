@@ -10,6 +10,7 @@ import com.mrtold.saulgoodman.logic.endpoint.attach.AttachSignature;
 import com.mrtold.saulgoodman.logic.model.Advocate;
 import com.mrtold.saulgoodman.logic.model.Agreement;
 import com.mrtold.saulgoodman.logic.model.Client;
+import com.mrtold.saulgoodman.utils.DocUtils;
 import com.mrtold.saulgoodman.utils.Strings;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
@@ -29,12 +30,14 @@ import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.interactions.modals.Modal;
 import net.dv8tion.jda.api.interactions.modals.ModalMapping;
+import net.dv8tion.jda.api.utils.FileUpload;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.ByteArrayInputStream;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -53,15 +56,19 @@ public class CommandAdapter extends ListenerAdapter {
 
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-        event.deferReply(true).queue();
+        boolean isRequest = event.getName().equalsIgnoreCase(Main.CMD_REQUEST);
+        if (!isRequest)
+            event.deferReply(true).queue();
 
         Guild guild = event.getGuild();
         if (guild == null) {
+            if (isRequest) event.deferReply(true).queue();
             event.getHook().sendMessage(s.get("cmd.err.no_guild")).queue(MSG_DELETE_10);
             return;
         }
 
         if (DsUtils.hasNotAdvocatePerms(event.getMember())) {
+            if (isRequest) event.deferReply(true).queue();
             event.getHook().sendMessage(s.get("cmd.err.no_perm")).queue(MSG_DELETE_10);
             return;
         }
@@ -153,6 +160,43 @@ public class CommandAdapter extends ListenerAdapter {
                         .exec(successFunc.apply("str.client_deleted"), failureConsumer);
                 break;
 
+            case Main.CMD_REQUEST:
+                Advocate advocate = db.getAdvocateByDiscord(advocateId);
+                if (advocate == null) {
+                    logAdvocateNf(event.getUser().getName());
+                    event.reply(s.get("cmd.err.no_perm")).setEphemeral(true).queue();
+                    return;
+                }
+
+                Client client = db.getClientByChannel(event.getChannelIdLong());
+                if (client == null) {
+                    event.reply(s.get("cmd.err.client_nf")).setEphemeral(true).queue();
+                    return;
+                }
+
+                Agreement agreement = db.getActiveAgreement(client.getPassport());
+                if (agreement == null || agreement.getStatus() != 1) {
+                    event.reply(s.get("cmd.err.agreement_nf")).setEphemeral(true).queue();
+                    return;
+                }
+
+                TextInput reqFormNum = DsUtils.formTextInput("request_num", "num",
+                        TextInputStyle.SHORT, 1, 5, true);
+                TextInput reqFormBody = DsUtils.formTextInput("request_body", "body",
+                        TextInputStyle.PARAGRAPH, 10, 4000, true);
+                TextInput reqFormTarget = DsUtils.formTextInput("request_target", "target",
+                        TextInputStyle.SHORT, 10, 500, true);
+                TextInput reqFormDeadline = DsUtils.formTextInput("request_deadline", "deadline",
+                        TextInputStyle.SHORT, 10, 100, true);
+
+                Modal modal = Modal.create("request_form_%d".formatted(agreement.getNumber()), s.get("embed.modal.request"))
+                        .addComponents(
+                                ActionRow.of(reqFormNum), ActionRow.of(reqFormBody),
+                                ActionRow.of(reqFormTarget), ActionRow.of(reqFormDeadline))
+                        .build();
+                event.replyModal(modal).queue();
+                break;
+
             default:
                 event.getHook().sendMessage(s.get("cmd.err.incorrect_cmd")).queue(MSG_DELETE_10);
                 log.warn("Unknown command {} used by {}", event.getName(), event.getUser().getName());
@@ -180,26 +224,14 @@ public class CommandAdapter extends ListenerAdapter {
                 return;
             }
 
-            TextInput name = TextInput.create("agreement_request_name",
-                            s.get("embed.modal.name.label"), TextInputStyle.SHORT)
-                    .setPlaceholder(s.get("embed.modal.name.desc"))
-                    .setMinLength(5)
-                    .setMaxLength(50)
-                    .build();
-            TextInput pass = TextInput.create("agreement_request_pass",
-                            s.get("embed.modal.passport.label"), TextInputStyle.SHORT)
-                    .setPlaceholder(s.get("embed.modal.passport.desc"))
-                    .setMinLength(1)
-                    .setMaxLength(8)
-                    .build();
-            TextInput desc = TextInput.create("agreement_request_desc",
-                            s.get("embed.modal.description.label"), TextInputStyle.PARAGRAPH)
-                    .setPlaceholder(s.get("embed.modal.description.desc"))
-                    .setRequired(false)
-                    .setMaxLength(1500)
-                    .build();
+            TextInput name = DsUtils.formTextInput("agreement_request_name", "name",
+                    TextInputStyle.SHORT, 5, 50, true);
+            TextInput pass = DsUtils.formTextInput("agreement_request_pass", "passport",
+                    TextInputStyle.SHORT, 1, 8, true);
+            TextInput desc =DsUtils.formTextInput("agreement_request_desc", "description",
+                    TextInputStyle.PARAGRAPH, 0, 1500, false);
 
-            Modal modal = Modal.create("agreement_request_form", s.get("embed.modal.request"))
+            Modal modal = Modal.create("agreement_request_form", s.get("embed.modal.ag_request"))
                     .addComponents(ActionRow.of(name), ActionRow.of(pass), ActionRow.of(desc))
                     .build();
             event.replyModal(modal).queue();
@@ -334,6 +366,34 @@ public class CommandAdapter extends ListenerAdapter {
             tc.sendMessage(DsUtils.getMemberAsMention(dsId) +
                     s.get("message.personal_welcome")).queue();
             tc.sendMessage(String.format(s.get("message.request_desc"), desc)).queue();
+
+        } else if (event.getModalId().startsWith("request_form_")) {
+            event.deferReply().queue();
+            int agreement = Integer.parseInt(event.getModalId().split("_")[2]);
+
+            String rNumS = extractModalValue(event, "request_num");
+            String body = extractModalValue(event, "request_body");
+            String target = extractModalValue(event, "request_target");
+            String deadline = extractModalValue(event, "request_deadline");
+
+            Advocate advocate = advocateSearch(event.getUser(), event);
+            if (advocate == null) return;
+
+            int rNum;
+            try {
+                if (rNumS == null) throw new RuntimeException();
+                rNum = Integer.parseInt(rNumS);
+            } catch (Exception e) {
+                event.getHook().sendMessage(s.get("message.request_wrong_num")).queue(MSG_DELETE_10);
+                return;
+            }
+
+            //noinspection DataFlowIssue
+            byte[] request = DocUtils.generateRequest(advocate.getName(), event.getUser().getName(), advocate.getPhone(),
+                    advocate.getSignature(), deadline, target, body, agreement, rNum);
+            Set<FileUpload> files = Collections.singleton(
+                    FileUpload.fromData(new ByteArrayInputStream(request), "mba_lg_request_%d.jpg".formatted(rNum)));
+            event.getHook().sendFiles(files).queue();
         }
     }
 
@@ -346,10 +406,14 @@ public class CommandAdapter extends ListenerAdapter {
     private Advocate advocateSearch(@NotNull User user, IReplyCallback event) {
         Advocate advocate = db.getAdvocateByDiscord(user.getIdLong());
         if (advocate == null || advocate.getSignature() == null || advocate.isNotActive()) {
-            log.error("Could not find advocate for user {}", user.getName());
+            logAdvocateNf(user.getName());
             event.getHook().sendMessage(s.get("cmd.err.no_perm")).queue(MSG_DELETE_10);
         }
         return advocate;
+    }
+
+    private void logAdvocateNf(String name) {
+        log.warn("Could not find advocate for user {}", name);
     }
 
     private void checkNotNull(Object... oa) {

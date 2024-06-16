@@ -119,6 +119,16 @@ public class DatabaseConnector {
         return client;
     }
 
+    public @Nullable Client getClientByChannel(@Nullable Long channelId) {
+        if (channelId == null) return null;
+
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Client C where C.dsUserChannel = :dsId",
+                    Client.class).setParameter("dsId", channelId).getSingleResult();
+        } catch (Exception ignored) {}
+        return null;
+    }
+
     @Nullable public Client getClient(@Nullable Long dsId, Integer pass) {
         Client client = getClientByPass(pass);
         if (client != null)
