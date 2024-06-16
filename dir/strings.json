@@ -164,7 +164,7 @@
   },
   "doc": {
     "agreement": {
-      "advocate_format": "Частного адвоката %s",
+      "advocate_format": "адвокатом %s",
       "client_format": "и доверителем %s",
       "with_pass_format": "c номером паспорта %d"
     },
