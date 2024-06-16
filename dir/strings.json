@@ -108,6 +108,7 @@
     "modal": {
       "ag_request": "Заявка",
       "request": "Запрос",
+      "ag_link": "Приложить ссылку на соглашение",
       "name": {
         "label": "Имя, Фамилия",
         "desc": "Имя Фамилия (( IC ))"
@@ -135,6 +136,10 @@
       "target": {
         "label": "Получатель запроса (Запрос направить ..)",
         "desc": "сотруднику Federal Investigation Bureau Douglas White"
+      },
+      "link": {
+        "label": "Ссылка на опубликованное соглашение",
+        "desc": "https://forum.gta5rp.com/threads/kollegija-advokatov-reestr-soglashenij-i-prilozhenij.1226299/post-"
       }
     },
     "body": {

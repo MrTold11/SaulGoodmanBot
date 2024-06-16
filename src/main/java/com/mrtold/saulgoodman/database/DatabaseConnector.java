@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Mr_Told
@@ -36,10 +37,10 @@ public class DatabaseConnector {
     final Logger log;
     final SessionFactory sessionFactory;
 
-    final Map<Integer, Client> clientsByPass = new HashMap<>();
-    final Map<Long, Client> clientsByDiscord = new HashMap<>();
-    final Map<Integer, Advocate> advocateByPass = new HashMap<>();
-    final Map<Long, Advocate> advocateByDiscord = new HashMap<>();
+    final Map<Integer, Client> clientsByPass = new ConcurrentHashMap<>();
+    final Map<Long, Client> clientsByDiscord = new ConcurrentHashMap<>();
+    final Map<Integer, Advocate> advocateByPass = new ConcurrentHashMap<>();
+    final Map<Long, Advocate> advocateByDiscord = new ConcurrentHashMap<>();
 
     DatabaseConnector(String ip, int port, String database, String user, String pass) {
         log = LoggerFactory.getLogger(DatabaseConnector.class);

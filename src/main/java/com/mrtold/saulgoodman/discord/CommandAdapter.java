@@ -279,32 +279,42 @@ public class CommandAdapter extends ListenerAdapter {
                 event.getHook().sendMessage(s.get("str.request_declined")).queue(MSG_DELETE_10);
             }
         } else if (buttonId.startsWith("agr_")) {
-            event.deferReply(true).queue();
-
             String[] split = buttonId.split("_");
             boolean ok = split[1].equals("ok");
             long advocateId = Long.parseLong(split[2]);
             int num = Integer.parseInt(split[3]);
 
-            Advocate advocate = advocateSearch(event.getUser(), event);
-            if (advocate == null) return;
+            Advocate advocate = db.getAdvocateByDiscord(advocateId);
+            if (advocate == null) {
+                logAdvocateNf(event.getUser().getName());
+                event.reply(s.get("cmd.err.no_perm")).setEphemeral(true).queue();
+                return;
+            }
 
             if ((event.getUser().getIdLong() != advocateId && DsUtils.hasNotHighPermission(event.getMember()))
                     || DsUtils.hasNotAdvocatePerms(event.getMember())) {
-                event.getHook().sendMessage(s.get("cmd.err.no_perm")).queue(MSG_DELETE_10);
+                event.reply(s.get("cmd.err.no_perm")).setEphemeral(true).queue();
                 return;
             }
 
             Agreement a = db.getAgreementById(num);
-            event.getMessage().editMessageComponents(Collections.emptyList()).queue();
+
             if (a == null) {
-                event.getHook().sendMessage(s.get("cmd.err.agreement_nf")).queue(MSG_DELETE_10);
+                event.getMessage().editMessageComponents(Collections.emptyList()).queue();
+                event.reply(s.get("cmd.err.agreement_nf")).setEphemeral(true).queue();
                 return;
             }
 
             if (ok) {
-                event.getHook().sendMessage(s.get("str.agreement_published")).queue(MSG_DELETE_10);
+                TextInput agreementLink = DsUtils.formTextInput("agreement_link", "link",
+                        TextInputStyle.SHORT, 10, 150, true);
+
+                Modal modal = Modal.create("agreement_link_%d".formatted(a.getNumber()), s.get("embed.modal.ag_link"))
+                        .addComponents(ActionRow.of(agreementLink)).build();
+                event.replyModal(modal).queue();
             } else {
+                event.deferReply(true).queue();
+                event.getMessage().editMessageComponents(Collections.emptyList()).queue();
                 log.info("Agreement {} has been cancelled by advocate {}", num, event.getUser().getIdLong());
                 db.deleteAgreement(a);
                 event.getMessage().editMessage(s.get("str.rolled_back")).setFiles(Collections.emptyList()).queue();
@@ -394,6 +404,32 @@ public class CommandAdapter extends ListenerAdapter {
             Set<FileUpload> files = Collections.singleton(
                     FileUpload.fromData(new ByteArrayInputStream(request), "mba_lg_request_%d.jpg".formatted(rNum)));
             event.getHook().sendFiles(files).queue();
+        } else if (event.getModalId().startsWith("agreement_link_")) {
+            event.deferReply(true).queue();
+            if (event.getMessage() != null)
+                event.getMessage().editMessageComponents(Collections.emptyList()).queue();
+            int agreement = Integer.parseInt(event.getModalId().split("_")[2]);
+
+            String link = extractModalValue(event, "agreement_link");
+
+            Agreement a = db.getAgreementById(agreement);
+            if (a == null) {
+                event.getHook().sendMessage(s.get("cmd.err.agreement_nf")).queue(MSG_DELETE_10);
+                return;
+            }
+
+            Client c = db.getClientByPass(a.getClient());
+            if (c != null) {
+                TextChannel tc = DsUtils.getChannelById(c.getDsUserChannel());
+                if (tc != null) {
+                    tc.getManager().setTopic("%s, ссылка: %s".formatted(
+                            Strings.getInstance().get("str.personal_channel_topic_pass_ag")
+                                    .formatted(c.getPassport(), agreement),
+                            link)).queue();
+                }
+            }
+
+            event.getHook().sendMessage(s.get("str.agreement_published")).queue(MSG_DELETE_10);
         }
     }
 
