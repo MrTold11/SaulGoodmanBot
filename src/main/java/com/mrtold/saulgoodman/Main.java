@@ -3,7 +3,7 @@ package com.mrtold.saulgoodman;
 import com.mrtold.saulgoodman.api.WebApi;
 import com.mrtold.saulgoodman.database.DatabaseConnector;
 import com.mrtold.saulgoodman.discord.CommandAdapter;
-import com.mrtold.saulgoodman.discord.DiscordUtils;
+import com.mrtold.saulgoodman.discord.DsUtils;
 import com.mrtold.saulgoodman.utils.*;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -110,7 +110,7 @@ public class Main {
         OptionData amountOpt = new OptionData(OptionType.INTEGER, s.get("cmd.arg.amount"),
                 s.get("cmd.arg.desc.amount"), true);
 
-        DiscordUtils.getGuild().updateCommands().addCommands(
+        DsUtils.getGuild().updateCommands().addCommands(
                 generateMemberCommand("sign", numOpt, userOpt, nameOpt, passOpt, signImgOpt),
                 generateMemberCommand("invite", userOpt, nameOpt, passOpt, signImgOpt),
                 generateMemberCommand("uninvite", reasonOpt, userOptNotReq, passOptNotReq),

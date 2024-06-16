@@ -1,6 +1,6 @@
 package com.mrtold.saulgoodman.logic.endpoint;
 
-import com.mrtold.saulgoodman.discord.DiscordUtils;
+import com.mrtold.saulgoodman.discord.DsUtils;
 import com.mrtold.saulgoodman.logic.dsregistry.RegistryUpdateUtil;
 import com.mrtold.saulgoodman.logic.model.Client;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
@@ -22,7 +22,7 @@ public class RenameClient extends Endpoint {
 
     @Override
     public void execute() {
-        if (DiscordUtils.hasNotAdvocatePerms(advocateDsId)) {
+        if (DsUtils.hasNotAdvocatePerms(advocateDsId)) {
             onFailureEP(s.get("cmd.err.no_perm"));
             return;
         }
@@ -41,7 +41,7 @@ public class RenameClient extends Endpoint {
         client.setName(name);
         db.saveClient(client);
 
-        TextChannel personalChannel = DiscordUtils.getChannelById(client.getDsUserChannel());
+        TextChannel personalChannel = DsUtils.getChannelById(client.getDsUserChannel());
         if (personalChannel != null)
             personalChannel.getManager().setName(name).queue();
 

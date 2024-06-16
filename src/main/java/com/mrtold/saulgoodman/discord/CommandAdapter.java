@@ -8,6 +8,7 @@ import com.mrtold.saulgoodman.logic.endpoint.attach.AttachName;
 import com.mrtold.saulgoodman.logic.endpoint.attach.AttachPhone;
 import com.mrtold.saulgoodman.logic.endpoint.attach.AttachSignature;
 import com.mrtold.saulgoodman.logic.model.Advocate;
+import com.mrtold.saulgoodman.logic.model.Agreement;
 import com.mrtold.saulgoodman.logic.model.Client;
 import com.mrtold.saulgoodman.utils.Strings;
 import net.dv8tion.jda.api.Permission;
@@ -38,6 +39,8 @@ import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static com.mrtold.saulgoodman.discord.DsUtils.MSG_DELETE_10;
+
 /**
  * @author Mr_Told
  */
@@ -50,21 +53,23 @@ public class CommandAdapter extends ListenerAdapter {
 
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
-        Guild guild = event.getGuild();
-        if (guild == null) {
-            event.reply(s.get("cmd.err.no_guild")).setEphemeral(true).queue();
-            return;
-        }
-
-        if (DiscordUtils.hasNotAdvocatePerms(event.getMember())) {
-            event.reply(s.get("cmd.err.no_perm")).setEphemeral(true).queue();
-            return;
-        }
-
         event.deferReply(true).queue();
 
-        Consumer<String> failureConsumer = s -> event.getHook().sendMessage(s).queue();
-        Function<String, Runnable> successFunc = s1 -> () -> event.getHook().sendMessage(s.get(s1)).queue();
+        Guild guild = event.getGuild();
+        if (guild == null) {
+            event.getHook().sendMessage(s.get("cmd.err.no_guild")).queue(MSG_DELETE_10);
+            return;
+        }
+
+        if (DsUtils.hasNotAdvocatePerms(event.getMember())) {
+            event.getHook().sendMessage(s.get("cmd.err.no_perm")).queue(MSG_DELETE_10);
+            return;
+        }
+
+        Consumer<String> failureConsumer = s ->
+                event.getHook().sendMessage(s).queue(MSG_DELETE_10);
+        Function<String, Runnable> successFunc = s1 -> () ->
+                event.getHook().sendMessage(s.get(s1)).queue(MSG_DELETE_10);
 
         long advocateId = event.getUser().getIdLong();
         Member targetMember = event.getOption(s.get("cmd.arg.user"), OptionMapping::getAsMember);
@@ -80,7 +85,7 @@ public class CommandAdapter extends ListenerAdapter {
                 int num = Objects.requireNonNull(event.getOption(s.get("cmd.arg.num"), OptionMapping::getAsInt));
                 //noinspection DataFlowIssue
                 new SignAgreement(advocateId, clientDsId, name, passport, num,
-                        DiscordUtils.attachmentSupplier(attachment))
+                        DsUtils.attachmentSupplier(attachment))
                         .exec(successFunc.apply("str.cmd_success"), failureConsumer);
                 break;
 
@@ -95,7 +100,7 @@ public class CommandAdapter extends ListenerAdapter {
                 checkNotNull(clientDsId, passport, attachment);
                 //noinspection DataFlowIssue
                 new InviteAdvocate(advocateId, clientDsId, passport, name,
-                        DiscordUtils.attachmentSupplier(attachment))
+                        DsUtils.attachmentSupplier(attachment))
                         .exec(successFunc.apply("str.cmd_success"), failureConsumer);
                 break;
 
@@ -125,14 +130,12 @@ public class CommandAdapter extends ListenerAdapter {
                             .exec(successFunc.apply("str.data_upd_ok"), failureConsumer);
                 } else {
                     Message.Attachment doc = Objects.requireNonNull(event.getOption(s.get("cmd.arg.doc_img"), OptionMapping::getAsAttachment));
-
                     if (subCmd.equalsIgnoreCase(Main.CMD_ATTACH_SIGNATURE)) {
-                        new AttachSignature(advocateId, DiscordUtils.attachmentSupplier(doc))
+                        new AttachSignature(advocateId, DsUtils.attachmentSupplier(doc))
                                 .exec(successFunc.apply("str.data_upd_ok"), failureConsumer);
                     }
                     //todo
                 }
-
                 break;
 
             case Main.CMD_RECEIPT:
@@ -151,7 +154,7 @@ public class CommandAdapter extends ListenerAdapter {
                 break;
 
             default:
-                event.getHook().sendMessage(s.get("cmd.err.incorrect_cmd")).queue();
+                event.getHook().sendMessage(s.get("cmd.err.incorrect_cmd")).queue(MSG_DELETE_10);
                 log.warn("Unknown command {} used by {}", event.getName(), event.getUser().getName());
                 break;
         }
@@ -167,12 +170,13 @@ public class CommandAdapter extends ListenerAdapter {
 
             new CloseBill(event.getUser().getIdLong(), event.getMessage(), buttonId.split("_")[2])
                     .exec(
-                            () -> event.getHook().sendMessage(s.get("str.receipt_paid")).queue(),
-                            s -> event.getHook().sendMessage(s).queue());
+                            () -> event.getHook().sendMessage(s.get("str.receipt_paid")).queue(MSG_DELETE_10),
+                            s -> event.getHook().sendMessage(s).queue(MSG_DELETE_10));
         } else if (buttonId.equals("agreement_request")) {
             Client client = db.getClientByDiscord(event.getUser().getIdLong());
             if (client != null) {
-                event.reply(s.get("message.already_client")).setEphemeral(true).queue();
+                event.deferReply(true).queue();
+                event.getHook().sendMessage(s.get("message.already_client")).queue(MSG_DELETE_10);
                 return;
             }
 
@@ -200,20 +204,19 @@ public class CommandAdapter extends ListenerAdapter {
                     .build();
             event.replyModal(modal).queue();
         } else if (buttonId.startsWith("aReq_")) {
-            if (DiscordUtils.hasNotAdvocatePerms(event.getMember())) {
-                event.reply(s.get("cmd.err.no_perm"))
-                        .setEphemeral(true).queue();
+            event.deferReply(true).queue();
+            if (DsUtils.hasNotAdvocatePerms(event.getMember())) {
+                event.getHook().sendMessage(s.get("cmd.err.no_perm")).queue(MSG_DELETE_10);
                 return;
             }
 
             Advocate advocate = advocateSearch(event.getUser(), event);
             if (advocate == null) return;
 
-            event.deferReply(true).queue();
             int pass = Integer.parseInt(buttonId.split("_")[2]);
             Client client = db.getClientByPass(pass);
             if (client == null || client.getDsUserChannel() == null || client.getDsUserId() == null) {
-                event.getHook().sendMessage(s.get("cmd.err.client_nf")).queue();
+                event.getHook().sendMessage(s.get("cmd.err.client_nf")).queue(MSG_DELETE_10);
                 return;
             }
 
@@ -222,7 +225,7 @@ public class CommandAdapter extends ListenerAdapter {
                 db.deleteClient(client);
                 event.getMessage().editMessage(s.get("str.request_cancelled"))
                         .setComponents().queue();
-                event.getHook().sendMessage(s.get("str.request_cancelled")).queue();
+                event.getHook().sendMessage(s.get("str.request_cancelled")).queue(MSG_DELETE_10);
                 return;
             }
 
@@ -235,13 +238,45 @@ public class CommandAdapter extends ListenerAdapter {
                         .queue();
                 event.getMessage().editMessage(s.get("str.request_accepted_by") +
                         Objects.requireNonNull(event.getMember()).getAsMention()).setComponents().queue();
-                event.getHook().sendMessage(s.get("str.request_accepted")).queue();
+                event.getHook().sendMessage(s.get("str.request_accepted")).queue(MSG_DELETE_10);
             } else {
                 db.deleteClient(client);
                 tc.delete().queue();
                 event.getMessage().editMessage(s.get("str.request_declined_by") +
                         Objects.requireNonNull(event.getMember()).getAsMention()).setComponents().queue();
-                event.getHook().sendMessage(s.get("str.request_declined")).queue();
+                event.getHook().sendMessage(s.get("str.request_declined")).queue(MSG_DELETE_10);
+            }
+        } else if (buttonId.startsWith("agr_")) {
+            event.deferReply(true).queue();
+
+            String[] split = buttonId.split("_");
+            boolean ok = split[1].equals("ok");
+            long advocateId = Long.parseLong(split[2]);
+            int num = Integer.parseInt(split[3]);
+
+            Advocate advocate = advocateSearch(event.getUser(), event);
+            if (advocate == null) return;
+
+            if ((event.getUser().getIdLong() != advocateId && DsUtils.hasNotHighPermission(event.getMember()))
+                    || DsUtils.hasNotAdvocatePerms(event.getMember())) {
+                event.getHook().sendMessage(s.get("cmd.err.no_perm")).queue(MSG_DELETE_10);
+                return;
+            }
+
+            Agreement a = db.getAgreementById(num);
+            event.getMessage().editMessageComponents(Collections.emptyList()).queue();
+            if (a == null) {
+                event.getHook().sendMessage(s.get("cmd.err.agreement_nf")).queue(MSG_DELETE_10);
+                return;
+            }
+
+            if (ok) {
+                event.getHook().sendMessage(s.get("str.agreement_published")).queue(MSG_DELETE_10);
+            } else {
+                log.info("Agreement {} has been cancelled by advocate {}", num, event.getUser().getIdLong());
+                db.deleteAgreement(a);
+                event.getMessage().editMessage(s.get("str.rolled_back")).setFiles(Collections.emptyList()).queue();
+                event.getHook().sendMessage(s.get("str.agreement_cancelled")).queue(MSG_DELETE_10);
             }
         }
     }
@@ -256,7 +291,7 @@ public class CommandAdapter extends ListenerAdapter {
             String pass = extractModalValue(event, "agreement_request_pass");
             String desc = extractModalValue(event, "agreement_request_desc");
             int passport;
-            long dsId = Objects.requireNonNull(event.getMember()).getIdLong();
+            long dsId = event.getUser().getIdLong();
 
             try {
                 if (pass == null) throw new RuntimeException();
@@ -264,39 +299,39 @@ public class CommandAdapter extends ListenerAdapter {
                 if (passport < 1) throw new RuntimeException();
             } catch (Exception e) {
                 event.getHook().sendMessage(s.get("message.request_wrong_pass"))
-                        .queue();
+                        .queue(MSG_DELETE_10);
                 return;
             }
 
             Client client = db.getClientByPass(passport);
-            if (client != null || name == null) {
+            if (client != null || name == null || name.isBlank()) {
                 event.getHook().sendMessage(s.get("message.request_failed"))
-                        .queue();
+                        .queue(MSG_DELETE_10);
                 return;
             }
 
-            TextChannel tc = DiscordUtils.createPersonalChannel( null, "❕・" + name, dsId,
+            TextChannel tc = DsUtils.createPersonalChannel( null, "❕・" + name, dsId,
                     null, passport);
             client = new Client(passport, dsId, name, tc.getIdLong());
 
             Objects.requireNonNull(event.getGuild().getTextChannelById(config.getRequestsChannelId()))
                     .sendMessage(MessageCreateData.fromEmbeds(
-                            DiscordUtils.prepareEmbedBuilder(15132410, s.get("embed.title.agreement_request"))
+                            DsUtils.prepareEmbedBuilder(15132410, s.get("embed.title.agreement_request"))
                                     .setDescription(String.format(Locale.getDefault(),
                                             s.get("embed.body.agreement_request"),
-                                            event.getMember().getAsMention(),
-                                            DiscordUtils.getEmbedData(name),
+                                            DsUtils.getMemberAsMention(dsId),
+                                            name,
                                             passport,
                                             tc.getAsMention(),
-                                            DiscordUtils.getEmbedData(desc))).build()))
+                                            DsUtils.getEmbedData(desc))).build()))
                     .setActionRow(
                             Button.success("aReq_acc_" + passport, s.get("embed.button.request_accept")),
                             Button.danger("aReq_dec_" + passport, s.get("embed.button.request_decline")))
                     .queue();
 
             db.saveClient(client);
-            event.getHook().sendMessage(s.get("message.request_accepted")).queue();
-            tc.sendMessage(event.getMember().getAsMention() +
+            event.getHook().sendMessage(s.get("message.request_accepted")).queue(MSG_DELETE_10);
+            tc.sendMessage(DsUtils.getMemberAsMention(dsId) +
                     s.get("message.personal_welcome")).queue();
             tc.sendMessage(String.format(s.get("message.request_desc"), desc)).queue();
         }
@@ -312,7 +347,7 @@ public class CommandAdapter extends ListenerAdapter {
         Advocate advocate = db.getAdvocateByDiscord(user.getIdLong());
         if (advocate == null || advocate.getSignature() == null || advocate.isNotActive()) {
             log.error("Could not find advocate for user {}", user.getName());
-            event.reply(s.get("cmd.err.no_perm")).setEphemeral(true).queue();
+            event.getHook().sendMessage(s.get("cmd.err.no_perm")).queue(MSG_DELETE_10);
         }
         return advocate;
     }

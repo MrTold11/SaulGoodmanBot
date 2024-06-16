@@ -1,6 +1,6 @@
 package com.mrtold.saulgoodman.logic.endpoint;
 
-import com.mrtold.saulgoodman.discord.DiscordUtils;
+import com.mrtold.saulgoodman.discord.DsUtils;
 import com.mrtold.saulgoodman.logic.dsregistry.RegistryUpdateUtil;
 import com.mrtold.saulgoodman.logic.model.Advocate;
 import com.mrtold.saulgoodman.logic.model.Client;
@@ -41,7 +41,7 @@ public class OpenBill extends Endpoint {
 
     @Override
     public void execute() {
-        if (DiscordUtils.hasNotAdvocatePerms(advocateDsId)) {
+        if (DsUtils.hasNotAdvocatePerms(advocateDsId)) {
             onFailureEP(s.get("cmd.err.no_perm"));
             return;
         }
@@ -69,23 +69,23 @@ public class OpenBill extends Endpoint {
         }
 
         if (personalChannel == null && client.getDsUserChannel() != null)
-            personalChannel = DiscordUtils.getChannelById(client.getDsUserChannel());
+            personalChannel = DsUtils.getChannelById(client.getDsUserChannel());
 
         Receipt r = db.saveReceipt(
                 new Receipt(0, advocate.getPassport(), client.getPassport(), amount, null));
 
         MessageCreateData mcd = MessageCreateData.fromEmbeds(
-                DiscordUtils.prepareEmbedBuilder(15132410, s.get("embed.title.receipt"))
+                DsUtils.prepareEmbedBuilder(15132410, s.get("embed.title.receipt"))
                         .setDescription(String.format(Locale.getDefault(),
                                 s.get("embed.body.receipt"),
                                 r.getId(),
-                                DiscordUtils.getMemberAsMention(client.getDsUserId()),
+                                DsUtils.getMemberAsMention(client.getDsUserId()),
                                 client.getName(),
                                 client.getPassport(),
-                                DiscordUtils.getMemberAsMention(advocate.getDsUserId()),
+                                DsUtils.getMemberAsMention(advocate.getDsUserId()),
                                 amount)).build());
 
-        r.setDs_id(DiscordUtils.getAuditChannel().sendMessage(mcd).setActionRow(
+        r.setDs_id(DsUtils.getAuditChannel().sendMessage(mcd).setActionRow(
                 Button.success("bill_payed_%d".formatted(r.getId()), s.get("embed.button.payed")))
                 .complete().getIdLong()
         );
@@ -93,7 +93,7 @@ public class OpenBill extends Endpoint {
 
         if (personalChannel != null)
             personalChannel.sendMessage(MessageCreateBuilder.from(mcd)
-                    .setContent(DiscordUtils.getMemberAsMention(client.getDsUserId())).build()).queue();
+                    .setContent(DsUtils.getMemberAsMention(client.getDsUserId())).build()).queue();
 
         onSuccessEP();
         RegistryUpdateUtil.updateReceiptRegistry();

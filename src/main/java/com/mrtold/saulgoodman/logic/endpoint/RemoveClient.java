@@ -1,6 +1,6 @@
 package com.mrtold.saulgoodman.logic.endpoint;
 
-import com.mrtold.saulgoodman.discord.DiscordUtils;
+import com.mrtold.saulgoodman.discord.DsUtils;
 import com.mrtold.saulgoodman.logic.model.Client;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 
@@ -22,7 +22,7 @@ public class RemoveClient extends Endpoint {
 
     @Override
     public void execute() {
-        if (DiscordUtils.hasNotHighPermission(advocateDsId)) {
+        if (DsUtils.hasNotHighPermission(advocateDsId)) {
             onFailureEP(s.get("cmd.err.no_perm"));
             return;
         }
@@ -41,7 +41,7 @@ public class RemoveClient extends Endpoint {
                 clientPass, advocateDsId);
 
         if (client.getDsUserChannel() != null) {
-            personalChannel = DiscordUtils.getChannelById(client.getDsUserChannel());
+            personalChannel = DsUtils.getChannelById(client.getDsUserChannel());
             if (personalChannel != null) personalChannel.delete().queue();
         }
 

@@ -55,7 +55,8 @@
       "already_has_agreement": "С клиентом уже заключено соглашение.",
       "amount_low": "Счет не может быть меньше 1$.",
       "receipt_nf": "Счет не найден.",
-      "agreement_exists": "Соглашение с таким номером уже существует!"
+      "agreement_exists": "Соглашение с таким номером уже существует!",
+      "agreement_nf": "Соглашение не найдено!"
     }
   },
   "str": {
@@ -64,12 +65,15 @@
     "data_upd_ok": "Данные успешно обновлены!",
     "receipt_paid": "Счет помечен как оплаченный!",
     "client_deleted": "Данные о клиенте удалены!",
+    "agreement_published": "Соглашение помечено как опубликованное!",
+    "agreement_cancelled": "Соглашение отменено.",
     "request_accepted": "Вы приняли запрос, доступ к каналу клиента открыт!",
     "request_declined": "Вы отклонили запрос, клиент удален!",
     "request_accepted_by": "Принято адвокатом: ",
     "request_declined_by": "Отклонено адвокатом: ",
     "request_cancelled": "Канал клиента был удален, заявка отменена.",
-    "personal_channel_topic_pass": "Паспорт клиента: %d"
+    "personal_channel_topic_pass": "Паспорт клиента: %d",
+    "rolled_back": "(( откачено ))"
   },
   "embed": {
     "author": {
@@ -95,7 +99,9 @@
       "payed": "Оплачено",
       "request_make": "Подать заявку",
       "request_accept": "Принять в работу",
-      "request_decline": "Отказать"
+      "request_decline": "Отказать",
+      "published": "Опубликовано",
+      "cancel": "Отменить"
     },
     "modal": {
       "request": "Заявка",

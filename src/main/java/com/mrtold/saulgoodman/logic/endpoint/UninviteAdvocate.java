@@ -1,6 +1,6 @@
 package com.mrtold.saulgoodman.logic.endpoint;
 
-import com.mrtold.saulgoodman.discord.DiscordUtils;
+import com.mrtold.saulgoodman.discord.DsUtils;
 import com.mrtold.saulgoodman.logic.model.Advocate;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 
@@ -25,7 +25,7 @@ public class UninviteAdvocate extends Endpoint {
 
     @Override
     public void execute() {
-        if (DiscordUtils.hasNotHighPermission(advocateDsId)) {
+        if (DsUtils.hasNotHighPermission(advocateDsId)) {
             onFailureEP(s.get("cmd.err.no_perm"));
             return;
         }
@@ -45,18 +45,18 @@ public class UninviteAdvocate extends Endpoint {
         db.saveAdvocate(advocate);
 
         MessageCreateData mcd = MessageCreateData.fromEmbeds(
-                DiscordUtils.prepareEmbedBuilder(14357564, s.get("embed.title.uninvite"))
+                DsUtils.prepareEmbedBuilder(14357564, s.get("embed.title.uninvite"))
                         .setDescription(String.format(Locale.getDefault(),
                                 s.get("embed.body.uninvite"),
-                                DiscordUtils.getMemberAsMention(targetDsId),
+                                DsUtils.getMemberAsMention(targetDsId),
                                 advocate.getName(),
                                 advocate.getPassport(),
                                 reason,
-                                DiscordUtils.getMemberAsMention(advocateDsId))).build());
+                                DsUtils.getMemberAsMention(advocateDsId))).build());
 
-        DiscordUtils.getAuditChannel().sendMessage(mcd).queue();
+        DsUtils.getAuditChannel().sendMessage(mcd).queue();
 
-        DiscordUtils.removeRoleFromMember(targetDsId, config.getAdvocateRoleId());
+        DsUtils.removeRoleFromMember(targetDsId, config.getAdvocateRoleId());
         onSuccessEP();
     }
 

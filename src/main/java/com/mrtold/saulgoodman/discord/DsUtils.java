@@ -19,13 +19,15 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
  * @author Mr_Told
  */
-public class DiscordUtils {
+public class DsUtils {
 
     private final static Guild guild;
 
@@ -40,8 +42,10 @@ public class DiscordUtils {
         }
     }
 
-    private final static ZoneId timezone = ZoneId.of("Europe/Moscow");
-    private final static DateTimeFormatter timestampFormat = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm:ss");
+    private static final ZoneId timezone = ZoneId.of("Europe/Moscow");
+    private static final DateTimeFormatter timestampFormat = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm:ss");
+
+    public static final Consumer<Message> MSG_DELETE_10 = m -> m.delete().queueAfter(10, TimeUnit.SECONDS);
 
     public static Guild getGuild() {
         return guild;

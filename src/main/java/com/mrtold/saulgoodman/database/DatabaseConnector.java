@@ -294,6 +294,10 @@ public class DatabaseConnector {
             clientsByDiscord.remove(client.getDsUserId());
     }
 
+    public void deleteAgreement(@NotNull Agreement agreement) {
+        sessionFactory.inTransaction(session -> session.remove(agreement));
+    }
+
     public void close() {
         sessionFactory.close();
     }

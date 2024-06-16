@@ -2,7 +2,7 @@ package com.mrtold.saulgoodman.logic.dsregistry;
 
 import com.mrtold.saulgoodman.Config;
 import com.mrtold.saulgoodman.database.DatabaseConnector;
-import com.mrtold.saulgoodman.discord.DiscordUtils;
+import com.mrtold.saulgoodman.discord.DsUtils;
 import com.mrtold.saulgoodman.logic.model.Client;
 import com.mrtold.saulgoodman.utils.Strings;
 import net.dv8tion.jda.api.entities.Guild;
@@ -84,7 +84,7 @@ public class RegistryUpdateUtil {
     public static <T> void updateRegistry(String title, int color, String tableTitle,
                                            List<T> items, RegistryFunc<T> func) {
         Config config = Config.getInstance();
-        Guild guild = DiscordUtils.getGuild();
+        Guild guild = DsUtils.getGuild();
         TextChannel registryChannel = guild.getTextChannelById(config.getRegistryChannelId());
         if (registryChannel == null) {
             LoggerFactory.getLogger(RegistryUpdateUtil.class).error(
@@ -104,7 +104,7 @@ public class RegistryUpdateUtil {
 
         if (registry == null) {
             registry = registryChannel.sendMessage(MessageCreateData.fromEmbeds(
-                    DiscordUtils.prepareEmbedBuilder(color, title)
+                    DsUtils.prepareEmbedBuilder(color, title)
                             .build())).complete();
         }
 
@@ -117,7 +117,7 @@ public class RegistryUpdateUtil {
             func.process(t, clientMap, sb, guild);
 
         registry.editMessage(MessageEditData.fromEmbeds(
-                DiscordUtils.prepareEmbedBuilder(color, title)
+                DsUtils.prepareEmbedBuilder(color, title)
                         .setDescription(sb.toString())
                         .build()
         )).queue();

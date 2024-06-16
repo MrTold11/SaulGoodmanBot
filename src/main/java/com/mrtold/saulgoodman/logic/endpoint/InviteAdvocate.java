@@ -1,6 +1,6 @@
 package com.mrtold.saulgoodman.logic.endpoint;
 
-import com.mrtold.saulgoodman.discord.DiscordUtils;
+import com.mrtold.saulgoodman.discord.DsUtils;
 import com.mrtold.saulgoodman.logic.model.Advocate;
 import com.mrtold.saulgoodman.logic.model.Agreement;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
@@ -31,7 +31,7 @@ public class InviteAdvocate extends Endpoint {
 
     @Override
     public void execute() {
-        if (DiscordUtils.hasNotHighPermission(authorDsId)) {
+        if (DsUtils.hasNotHighPermission(authorDsId)) {
             onFailureEP(s.get("cmd.err.no_perm"));
             return;
         }
@@ -58,17 +58,17 @@ public class InviteAdvocate extends Endpoint {
             a1.setStatus(1);
         db.saveAgreement(a1);
 
-        DiscordUtils.getAuditChannel().sendMessage(MessageCreateData.fromEmbeds(
-                DiscordUtils.prepareEmbedBuilder(15132410, s.get("embed.title.invite"))
+        DsUtils.getAuditChannel().sendMessage(MessageCreateData.fromEmbeds(
+                DsUtils.prepareEmbedBuilder(15132410, s.get("embed.title.invite"))
                         .setDescription(String.format(Locale.getDefault(),
                                 s.get("embed.body.invite"),
-                                DiscordUtils.getMemberAsMention(advocateDsId),
+                                DsUtils.getMemberAsMention(advocateDsId),
                                 advocateName,
                                 advocatePass,
-                                DiscordUtils.getMemberAsMention(authorDsId)))
+                                DsUtils.getMemberAsMention(authorDsId)))
                         .build())).queue();
 
-        DiscordUtils.addRoleToMember(advocateDsId, config.getAdvocateRoleId());
+        DsUtils.addRoleToMember(advocateDsId, config.getAdvocateRoleId());
         onSuccessEP();
     }
 

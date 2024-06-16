@@ -1,6 +1,6 @@
 package com.mrtold.saulgoodman.logic.endpoint;
 
-import com.mrtold.saulgoodman.discord.DiscordUtils;
+import com.mrtold.saulgoodman.discord.DsUtils;
 import com.mrtold.saulgoodman.logic.dsregistry.RegistryUpdateUtil;
 import com.mrtold.saulgoodman.logic.model.Agreement;
 import com.mrtold.saulgoodman.logic.model.Client;
@@ -28,7 +28,7 @@ public class TerminateAgreement extends Endpoint {
 
     @Override
     public void execute() {
-        if (DiscordUtils.hasNotHighPermission(advocateDsId)) {
+        if (DsUtils.hasNotHighPermission(advocateDsId)) {
             onFailureEP(s.get("cmd.err.no_perm"));
             return;
         }
@@ -52,24 +52,24 @@ public class TerminateAgreement extends Endpoint {
         db.saveAgreement(a);
 
         MessageCreateData mcd = MessageCreateData.fromEmbeds(
-                DiscordUtils.prepareEmbedBuilder(14357564, s.get("embed.title.terminate"))
+                DsUtils.prepareEmbedBuilder(14357564, s.get("embed.title.terminate"))
                         .setDescription(String.format(Locale.getDefault(),
                                 s.get("embed.body.terminate"),
-                                DiscordUtils.getMemberAsMention(clientDsId),
+                                DsUtils.getMemberAsMention(clientDsId),
                                 client.getName(),
                                 client.getPassport(),
                                 reason,
-                                DiscordUtils.getMemberAsMention(advocateDsId))).build());
+                                DsUtils.getMemberAsMention(advocateDsId))).build());
 
-        DiscordUtils.getAuditChannel().sendMessage(mcd).queue();
+        DsUtils.getAuditChannel().sendMessage(mcd).queue();
 
-        TextChannel personalChannel = DiscordUtils.getChannelById(client.getDsUserChannel());
+        TextChannel personalChannel = DsUtils.getChannelById(client.getDsUserChannel());
         if (personalChannel != null) {
             personalChannel.sendMessage(mcd).queue();
-            DiscordUtils.archivePersonalChannel(personalChannel);
+            DsUtils.archivePersonalChannel(personalChannel);
         }
 
-        DiscordUtils.removeRoleFromMember(clientDsId, config.getClientRoleId());
+        DsUtils.removeRoleFromMember(clientDsId, config.getClientRoleId());
         onSuccessEP();
         RegistryUpdateUtil.updateClientsRegistry();
     }
