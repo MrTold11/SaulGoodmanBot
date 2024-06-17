@@ -112,6 +112,8 @@ public class Main {
         OptionData amountOpt = new OptionData(OptionType.INTEGER, s.get("cmd.arg.amount"),
                 s.get("cmd.arg.desc.amount"), true);
 
+        jda.updateCommands().complete();
+        DsUtils.getGuild().updateCommands().complete();
         DsUtils.getGuild().updateCommands().addCommands(
                 generateMemberCommand("sign", numOpt, userOpt, nameOpt, passOpt, signImgOpt),
                 generateMemberCommand("invite", userOpt, nameOpt, passOpt, signImgOpt),
