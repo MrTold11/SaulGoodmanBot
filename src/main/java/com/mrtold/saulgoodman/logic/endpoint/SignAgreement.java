@@ -58,6 +58,11 @@ public class SignAgreement extends Endpoint {
             return;
         }
 
+        if (agreementNum < 1) {
+            onFailureEP(s.get("cmd.err.agreement_negative_num"));
+            return;
+        }
+
         if (db.getAgreementById(agreementNum) != null) {
             onFailureEP(s.get("cmd.err.agreement_exists"));
             return;

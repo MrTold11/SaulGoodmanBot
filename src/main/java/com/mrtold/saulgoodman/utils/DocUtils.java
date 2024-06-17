@@ -95,11 +95,17 @@ public class DocUtils {
                                          int agreement, int num) {
         try {
             Strings s = Strings.getInstance();
-            List<String> bodyPartsIn = Arrays.stream(input
-                    .split("\n"))
+            List<String> bodyPartsIn = input.lines()
                     .filter(l -> !l.isBlank())
-                    .map(l -> l + ";")
-                    .toList();
+                    .map(l -> {
+                        StringBuilder sb = new StringBuilder(l);
+                        char last = l.charAt(l.length() - 1);
+                        if (last == '.' || last == ';' || last == ',')
+                            sb.setCharAt(sb.length() - 1, ';');
+                        else
+                            sb.append(';');
+                        return sb.toString();
+                    }).toList();
 
             List<String> bodyList = new ArrayList<>(bodyPartsIn.size() + 3);
             bodyList.addAll(bodyPartsIn);
