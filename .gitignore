@@ -42,3 +42,6 @@ bin/
 .DS_Store
 /dir/config.json
 /dir/logs/
+
+# Saved Docker-Image
+*.tar
