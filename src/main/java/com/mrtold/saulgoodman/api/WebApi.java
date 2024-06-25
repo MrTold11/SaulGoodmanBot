@@ -73,7 +73,7 @@ public class WebApi {
         initCommonGet("client", db::getClientByPass);
 
         get("/authenticate", (request, response) -> {
-            Advocate user = getUser(request);
+            Advocate user = getAdvocate(request);
             JsonObject data = new JsonObject();
 
             data.addProperty("passport", user.getPassport());
@@ -83,14 +83,14 @@ public class WebApi {
         });
 
         get("/advocate", (request, response) -> {
-            Advocate user = getUser(request);
+            Advocate user = getAdvocate(request);
             response.status(200);
             response.type("application/json");
             return gson.toJson(user);
         });
 
         get("/dashboard", (request, response) -> {
-            Advocate user =  getUser(request);
+            Advocate user =  getAdvocate(request);
 
             response.status(200);
             response.type("application/json");
@@ -143,7 +143,7 @@ public class WebApi {
 
     private <T> void initCommonGet(String name, Function<Integer, T> function) {
         get("/%s/:id".formatted(name), (request, response) -> {
-            getUser(request);
+            getAdvocate(request);
 
             int id = parseInt(request.params(":id"));
             T obj = function.apply(id);
@@ -156,7 +156,7 @@ public class WebApi {
         });
     }
 
-    private Advocate getUser(Request request) {
+    private Advocate getAdvocate(Request request) {
         Long userId = authentication.authenticate(request.cookie("code"));
         if (userId == null) {
             log.warn("Couldn't find discord id by access code.");
