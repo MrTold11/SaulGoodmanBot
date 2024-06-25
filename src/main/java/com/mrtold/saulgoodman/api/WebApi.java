@@ -5,6 +5,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.mrtold.saulgoodman.database.DatabaseConnector;
 import com.mrtold.saulgoodman.logic.model.*;
+import com.mrtold.saulgoodman.services.Authentication;
+
 import org.jetbrains.annotations.NotNull;
 import spark.Request;
 
@@ -50,10 +52,10 @@ public class WebApi {
     final Gson gson = new Gson();
     final DatabaseConnector db;
 
-    final WebAuth auth;
+    final Authentication authentication;
 
     WebApi(String dsClientId, String dsClientSecret, String oAuth2Redirect, int port) {
-        auth = new WebAuth(dsClientId, dsClientSecret, oAuth2Redirect);
+        authentication = new Authentication(dsClientId, dsClientSecret, oAuth2Redirect);
         db = DatabaseConnector.getInstance();
         port(port);
         enableCORS("*", "*");
@@ -67,15 +69,25 @@ public class WebApi {
         initCommonGet("advocate", db::getAdvocateByPass);
         initCommonGet("client", db::getClientByPass);
 
+        get("/authenticate", (request, response) -> {
+            Advocate user = getUser(request);
+            JsonObject data = new JsonObject();
+
+            data.addProperty("passport", user.getPassport());
+            data.addProperty("name", user.getName());
+
+            return data;
+        });
+
         get("/advocate", (request, response) -> {
-            Advocate advocate = authAdvocate(authUser(request));
+            Advocate user = getUser(request);
             response.status(200);
             response.type("application/json");
-            return gson.toJson(advocate);
+            return gson.toJson(user);
         });
 
         get("/dashboard", (request, response) -> {
-            Advocate advocate = authAdvocate(authUser(request));
+            Advocate user =  getUser(request);
 
             response.status(200);
             response.type("application/json");
@@ -85,9 +97,9 @@ public class WebApi {
             JsonArray casesJO = new JsonArray();
             JsonArray receiptsJO = new JsonArray();
 
-            List<Agreement> agreements = db.getAdvocateAgreements(advocate.getPassport(), 10);
-            List<Case> cases = db.getAdvocateCases(advocate.getPassport(), 10);
-            List<Receipt> receipts = db.getAdvocateReceipts(advocate.getPassport(), 10);
+            List<Agreement> agreements = db.getAdvocateAgreements(user.getPassport(), 10);
+            List<Case> cases = db.getAdvocateCases(user.getPassport(), 10);
+            List<Receipt> receipts = db.getAdvocateReceipts(user.getPassport(), 10);
 
             for (Agreement agreement : agreements) {
                 if (agreement.getClient() == 0) continue;
@@ -128,7 +140,7 @@ public class WebApi {
 
     private <T> void initCommonGet(String name, Function<Integer, T> function) {
         get("/%s/:id".formatted(name), (request, response) -> {
-            authAdvocate(authUser(request));
+            getUser(request);
 
             int id = parseInt(request.params(":id"));
             T obj = function.apply(id);
@@ -141,17 +153,14 @@ public class WebApi {
         });
     }
 
-    private @NotNull Long authUser(Request request) {
-        String accessCode = request.cookie("code");
 
-        Long userId = auth.auth(accessCode);
+    private Advocate getUser(Request request) {
+        Long userId = authentication.authenticate(request.cookie("code"));
         if (userId == null) halt(401);
-        return userId;
-    }
 
-    private @NotNull Advocate authAdvocate(Long userId) {
         Advocate advocate = db.getAdvocateByDiscord(userId);
         if (advocate == null || advocate.isNotActive()) halt(403);
+
         return advocate;
     }
 
