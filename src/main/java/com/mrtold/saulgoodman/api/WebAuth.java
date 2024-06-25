@@ -47,8 +47,10 @@ public class WebAuth {
     }
 
     public @Nullable Long auth(String accessCode) {
-        if (accessCode == null || accessCode.isEmpty())
+        if (accessCode == null || accessCode.isEmpty()) {
+            log.warn("Auth Access code is null or empty");
             return null;
+        }
 
         Long dsId = authCache.get(accessCode);
         if (dsId != null)
@@ -62,8 +64,10 @@ public class WebAuth {
     }
 
     private Long getDsIdByAccessToken(@Nullable String accessToken) {
-        if (accessToken == null || accessToken.isEmpty())
+        if (accessToken == null || accessToken.isEmpty()) {
+            log.warn("Auth Access token is null or empty");
             return null;
+        }
 
         HttpGet get = new HttpGet(GET_USER_URL);
         get.setHeader("Authorization", "Bearer " + accessToken);

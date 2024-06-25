@@ -6,6 +6,8 @@ import com.google.gson.JsonObject;
 import com.mrtold.saulgoodman.database.DatabaseConnector;
 import com.mrtold.saulgoodman.logic.model.*;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import spark.Request;
 
 import java.util.List;
@@ -47,6 +49,7 @@ public class WebApi {
         });
     }
 
+    final Logger log = LoggerFactory.getLogger(WebApi.class);
     final Gson gson = new Gson();
     final DatabaseConnector db;
 
@@ -145,13 +148,22 @@ public class WebApi {
         String accessCode = request.cookie("code");
 
         Long userId = auth.auth(accessCode);
-        if (userId == null) halt(401);
+        if (userId == null) {
+            log.warn("Couldn't find discord id by access code.");
+            halt(401);
+        }
         return userId;
     }
 
     private @NotNull Advocate authAdvocate(Long userId) {
         Advocate advocate = db.getAdvocateByDiscord(userId);
-        if (advocate == null || advocate.isNotActive()) halt(403);
+        if (advocate == null || advocate.isNotActive()) {
+            if (advocate == null)
+                log.warn("User is not advocate.");
+            else
+                log.warn("User is not ACTIVE advocate.");
+            halt(403);
+        }
         return advocate;
     }
 
