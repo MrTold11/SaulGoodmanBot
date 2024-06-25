@@ -124,6 +124,12 @@ public class DsUtils {
         return "<@" + dsId + ">";
     }
 
+    public static @NotNull String getRoleAsMention(@Nullable Long roleId) {
+        if (roleId == null) return Strings.getInstance().get("str.not_spec");
+        if (roleId == guild.getPublicRole().getIdLong()) return "@everyone";
+        return "<@&" + roleId + ">";
+    }
+
     @NotNull
     public static EmbedBuilder prepareEmbedBuilder(int color, String title) {
         Strings s = Strings.getInstance();

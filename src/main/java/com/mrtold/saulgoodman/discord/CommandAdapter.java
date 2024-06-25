@@ -366,6 +366,7 @@ public class CommandAdapter extends ListenerAdapter {
                                             passport,
                                             tc.getAsMention(),
                                             DsUtils.getEmbedData(desc))).build()))
+                    .setContent(DsUtils.getRoleAsMention(config.getAdvocateRoleId()))
                     .setActionRow(
                             Button.success("aReq_acc_" + passport, s.get("embed.button.request_accept")),
                             Button.danger("aReq_dec_" + passport, s.get("embed.button.request_decline")))
