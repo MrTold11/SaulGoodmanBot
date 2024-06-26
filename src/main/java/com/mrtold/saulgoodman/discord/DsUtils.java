@@ -162,7 +162,6 @@ public class DsUtils {
     }
 
     @NotNull
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static TextChannel createPersonalChannel(Long cId, String name, @Nullable Long dsUId,
                                                     @Nullable Advocate advocate, int clientPass, Integer agNum) {
         Config config = Config.getInstance();
@@ -183,20 +182,23 @@ public class DsUtils {
         channel.getManager().setTopic(Strings.getInstance().get("str.personal_channel_topic_pass_ag")
                 .formatted(clientPass, getEmbedData(agNum))).queue();
 
-        TextChannelManager permManager = channel.getManager();
-
         if (channel.getParentCategory() == null ||
                 !channel.getParentCategory().getName().equalsIgnoreCase(config.getClientsCategory())) {
-            permManager.setParent(guild.getCategoriesByName(config.getClientsCategory(), true).get(0));
+            channel.getManager()
+                    .setParent(guild.getCategoriesByName(config.getClientsCategory(), true).get(0))
+                    .queue();
         }
 
-        if (dsUId != null)
-            permManager.putMemberPermissionOverride(dsUId,
-                    Permission.getRaw(Permission.VIEW_CHANNEL), 0);
-        if (advocate != null)
-            permManager.putMemberPermissionOverride(advocate.getDsUserId(),
-                    Permission.getRaw(Permission.VIEW_CHANNEL), 0);
-        permManager.queue();
+        Member member = getGuildMember(dsUId);
+        if (member != null)
+            channel.upsertPermissionOverride(member).grant(Permission.VIEW_CHANNEL).queue();
+
+        if (advocate != null) {
+            Member advocateMember = getGuildMember(advocate.getDsUserId());
+            if (advocateMember != null)
+                channel.upsertPermissionOverride(advocateMember).grant(Permission.VIEW_CHANNEL).queue();
+        }
+
         return channel;
     }
 

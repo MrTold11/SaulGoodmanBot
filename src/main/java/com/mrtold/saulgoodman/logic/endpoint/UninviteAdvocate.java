@@ -2,9 +2,15 @@ package com.mrtold.saulgoodman.logic.endpoint;
 
 import com.mrtold.saulgoodman.discord.DsUtils;
 import com.mrtold.saulgoodman.logic.model.Advocate;
+import com.mrtold.saulgoodman.logic.model.Client;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 
+import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * @author Mr_Told
@@ -57,6 +63,17 @@ public class UninviteAdvocate extends Endpoint {
         DsUtils.getAuditChannel().sendMessage(mcd).queue();
 
         DsUtils.removeRoleFromMember(targetDsId, config.getAdvocateRoleId());
+
+        Member member = DsUtils.getGuildMember(targetDsId);
+        if (member != null) {
+            List<Client> clients = db.getAllClients();
+            for (Client client : clients) {
+                if (Objects.equals(client.getDsUserId(), targetDsId)) continue;
+                TextChannel channel = DsUtils.getChannelById(client.getDsUserChannel());
+                if (channel != null)
+                    channel.upsertPermissionOverride(member).clear(Permission.VIEW_CHANNEL).queue();
+            }
+        }
         onSuccessEP();
     }
 

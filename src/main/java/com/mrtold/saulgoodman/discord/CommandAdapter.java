@@ -262,12 +262,7 @@ public class CommandAdapter extends ListenerAdapter {
             }
 
             if (buttonId.startsWith("aReq_acc_")) {
-                Objects.requireNonNull(tc).getManager()
-                        .putMemberPermissionOverride(advocate.getDsUserId(),
-                                Permission.getRaw(Permission.VIEW_CHANNEL), 0)
-                        .putMemberPermissionOverride(client.getDsUserId(),
-                                Permission.getRaw(Permission.VIEW_CHANNEL), 0)
-                        .queue();
+                tc.upsertPermissionOverride(event.getMember()).grant(Permission.VIEW_CHANNEL).queue();
                 event.getMessage().editMessage(s.get("str.request_accepted_by") +
                         Objects.requireNonNull(event.getMember()).getAsMention()).setComponents().queue();
                 event.getHook().sendMessage(s.get("str.request_accepted")).queue(MSG_DELETE_10);
