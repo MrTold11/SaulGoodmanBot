@@ -20,7 +20,8 @@ public class Config {
     }
 
     private long clientRoleId, advocateRoleId, headsRoleId;
-    private long registryChannelId, auditChannelId, requestChannelId, requestsChannelId;
+    private long registryChannelId, auditChannelId, requestChannelId, requestsChannelId,
+        firstAidChannelId, shiftChannelId;
     private long guildId;
     private int defaultBillAmount;
     private String clientsCategory, archiveCategory;
@@ -50,6 +51,8 @@ public class Config {
         auditChannelId = discordChannels.get("audit").getAsLong();
         requestChannelId = discordChannels.get("request").getAsLong();
         requestsChannelId = discordChannels.get("requests").getAsLong();
+        firstAidChannelId = discordChannels.get("first_aid").getAsLong();
+        shiftChannelId = discordChannels.get("shift").getAsLong();
 
         JsonObject discordCategories = discord.get("categories").getAsJsonObject();
         clientsCategory = discordCategories.get("clients").getAsString();
@@ -128,6 +131,14 @@ public class Config {
 
     public long getRequestChannelId() {
         return requestChannelId;
+    }
+
+    public long getFirstAidChannelId() {
+        return firstAidChannelId;
+    }
+
+    public long getShiftChannelId() {
+        return shiftChannelId;
     }
 
     public long getClientRoleId() {

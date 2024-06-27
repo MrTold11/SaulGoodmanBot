@@ -7,6 +7,7 @@ import com.mrtold.saulgoodman.logic.endpoint.*;
 import com.mrtold.saulgoodman.logic.endpoint.attach.AttachName;
 import com.mrtold.saulgoodman.logic.endpoint.attach.AttachPhone;
 import com.mrtold.saulgoodman.logic.endpoint.attach.AttachSignature;
+import com.mrtold.saulgoodman.logic.firstaid.FirstAidManager;
 import com.mrtold.saulgoodman.logic.model.Advocate;
 import com.mrtold.saulgoodman.logic.model.Agreement;
 import com.mrtold.saulgoodman.logic.model.Client;
@@ -16,7 +17,6 @@ import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -43,6 +43,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static com.mrtold.saulgoodman.discord.DsUtils.MSG_DELETE_10;
+import static com.mrtold.saulgoodman.discord.DsUtils.MSG_DELETE_60;
 
 /**
  * @author Mr_Told
@@ -228,21 +229,84 @@ public class CommandAdapter extends ListenerAdapter {
                     TextInputStyle.SHORT, 5, 50, true);
             TextInput pass = DsUtils.formTextInput("agreement_request_pass", "passport",
                     TextInputStyle.SHORT, 1, 8, true);
-            TextInput desc =DsUtils.formTextInput("agreement_request_desc", "description",
+            TextInput desc = DsUtils.formTextInput("agreement_request_desc", "description",
                     TextInputStyle.PARAGRAPH, 0, 1500, false);
 
             Modal modal = Modal.create("agreement_request_form", s.get("embed.modal.ag_request"))
                     .addComponents(ActionRow.of(name), ActionRow.of(pass), ActionRow.of(desc))
                     .build();
             event.replyModal(modal).queue();
-        } else if (buttonId.startsWith("aReq_")) {
+
+        } else if (buttonId.equals("firstaid_request")) {
             event.deferReply(true).queue();
-            if (DsUtils.hasNotAdvocatePerms(event.getMember())) {
+            Client client = db.getClientByDiscord(event.getUser().getIdLong());
+            if (client == null) {
+                List<Client> twinks = db.getClientTwinks(event.getUser().getIdLong());
+                twinks.removeIf(c -> !db.clientHasActiveAgreement(c.getPassport()));
+                if (twinks.isEmpty()) {
+                    event.getHook().sendMessage(s.get("cmd.err.no_perm")).queue(MSG_DELETE_10);
+                    return;
+                }
+
+                if (twinks.size() == 1)
+                    client = twinks.get(0);
+                else {
+                    event.getHook().sendMessage(s.get("message.select_twink"))
+                            .setActionRow(twinks.stream().map(
+                                    c -> Button.primary("twink_faReq_%d".formatted(c.getPassport()), c.getName())
+                            ).toList()).queue(MSG_DELETE_60);
+                    return;
+                }
+            } else if (!db.clientHasActiveAgreement(client.getPassport())) {
                 event.getHook().sendMessage(s.get("cmd.err.no_perm")).queue(MSG_DELETE_10);
                 return;
             }
 
-            Advocate advocate = advocateSearch(event.getUser(), event);
+            if (FirstAidManager.getInstance().registerRequest(client))
+                event.getHook().sendMessage(s.get("message.firstaid_accepted")).queue(MSG_DELETE_10);
+            else
+                event.getHook().sendMessage(s.get("message.firstaid_timeout")).queue(MSG_DELETE_10);
+
+        } else if (buttonId.startsWith("twink_faReq_")) {
+            event.deferReply(true).queue();
+            int pass = Integer.parseInt(buttonId.split("_")[2]);
+            Client client = db.getClientByPass(pass);
+            if (client == null || !Objects.equals(client.getDsUserId(), event.getUser().getIdLong())) {
+                event.getHook().sendMessage(s.get("cmd.err.no_perm")).queue(MSG_DELETE_10);
+                return;
+            }
+
+            if (FirstAidManager.getInstance().registerRequest(client))
+                event.getHook().sendMessage(s.get("message.firstaid_accepted")).queue(MSG_DELETE_10);
+            else
+                event.getHook().sendMessage(s.get("message.firstaid_timeout")).queue(MSG_DELETE_10);
+
+        } else if (buttonId.startsWith("faReq_")) {
+            event.deferReply(true).queue();
+            long id = Long.parseLong(buttonId.split("_")[1]);
+            Advocate advocate = advocateSearch(event);
+            if (advocate == null) return;
+
+            event.getMessage().editMessage(s.get("str.request_accepted_by") +
+                    DsUtils.getMemberAsMention(event.getUser().getIdLong())).setComponents().queue();
+            FirstAidManager.getInstance().acceptRequest(id, advocate,
+                    s -> event.getHook().sendMessage(s).queue(MSG_DELETE_10));
+
+        } else if (buttonId.equals("firstaid_enter")) {
+            event.deferReply(true).queue();
+            Advocate advocate = advocateSearch(event);
+            if (advocate == null) return;
+            FirstAidManager.getInstance().startShift(advocate);
+            event.getHook().sendMessage(s.get("message.duty_enter")).queue(MSG_DELETE_10);
+        } else if (buttonId.equals("firstaid_exit")) {
+            event.deferReply(true).queue();
+            Advocate advocate = advocateSearch(event);
+            if (advocate == null) return;
+            FirstAidManager.getInstance().endShift(advocate);
+            event.getHook().sendMessage(s.get("message.duty_exit")).queue(MSG_DELETE_10);
+        } else if (buttonId.startsWith("aReq_")) {
+            event.deferReply(true).queue();
+            Advocate advocate = advocateSearch(event);
             if (advocate == null) return;
 
             int pass = Integer.parseInt(buttonId.split("_")[2]);
@@ -382,7 +446,7 @@ public class CommandAdapter extends ListenerAdapter {
             String target = extractModalValue(event, "request_target");
             String deadline = extractModalValue(event, "request_deadline");
 
-            Advocate advocate = advocateSearch(event.getUser(), event);
+            Advocate advocate = advocateSearch(event);
             if (advocate == null) return;
 
             int rNum;
@@ -435,10 +499,14 @@ public class CommandAdapter extends ListenerAdapter {
         return m.getAsString();
     }
 
-    private Advocate advocateSearch(@NotNull User user, IReplyCallback event) {
-        Advocate advocate = db.getAdvocateByDiscord(user.getIdLong());
+    private Advocate advocateSearch(IReplyCallback event) {
+        if (DsUtils.hasNotAdvocatePerms(event.getMember())) {
+            event.getHook().sendMessage(s.get("cmd.err.no_perm")).queue(MSG_DELETE_10);
+            return null;
+        }
+        Advocate advocate = db.getAdvocateByDiscord(event.getUser().getIdLong());
         if (advocate == null || advocate.getSignature() == null || advocate.isNotActive()) {
-            logAdvocateNf(user.getName());
+            logAdvocateNf(event.getUser().getName());
             event.getHook().sendMessage(s.get("cmd.err.no_perm")).queue(MSG_DELETE_10);
         }
         return advocate;

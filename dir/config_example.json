@@ -15,7 +15,9 @@
       "registry": 123456789,
       "audit": 123456789,
       "request": 123456789,
-      "requests": 123456789
+      "requests": 123456789,
+      "first_aid": 123456789,
+      "shift": 123456789
     },
     "categories": {
       "clients": "клиенты",

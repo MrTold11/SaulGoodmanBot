@@ -106,6 +106,15 @@ public class DatabaseConnector {
         return client;
     }
 
+    public List<Client> getClientTwinks(@Nullable Long dsId) {
+        if (dsId == null) return Collections.emptyList();
+
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Client C where C.dsUserId = :dsId",
+                    Client.class).setParameter("dsId", dsId).getResultList();
+        }
+    }
+
     public @Nullable Client getClientByDiscord(@Nullable Long dsId) {
         if (dsId == null) return null;
 

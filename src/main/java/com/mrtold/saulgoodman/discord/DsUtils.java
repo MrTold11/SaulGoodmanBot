@@ -11,6 +11,8 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
 import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
@@ -23,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -31,7 +34,7 @@ import java.util.stream.Collectors;
  */
 public class DsUtils {
 
-    private final static Guild guild;
+    private static final Guild guild;
 
     static {
         try {
@@ -48,8 +51,9 @@ public class DsUtils {
     private static final DateTimeFormatter timestampFormat = DateTimeFormatter.ofPattern("dd.MM.yyyy, HH:mm:ss");
 
     public static final Consumer<Message> MSG_DELETE_10 = m -> m.delete().queueAfter(10, TimeUnit.SECONDS);
+    public static final Consumer<Message> MSG_DELETE_60 = m -> m.delete().queueAfter(60, TimeUnit.SECONDS);
 
-    public static Guild getGuild() {
+    public static @NotNull Guild getGuild() {
         return guild;
     }
 
@@ -114,6 +118,48 @@ public class DsUtils {
         return member.getRoles().stream().noneMatch(roles::contains);
     }
 
+    public static boolean hasNotViewPermission(@Nullable Long memberId, @Nullable Long channelId) {
+        if (memberId == null || channelId == null) return false;
+        return hasNotViewPermission(getGuild().getMemberById(memberId), getChannelById(channelId));
+    }
+
+    public static boolean hasNotViewPermission(@Nullable Member member, @Nullable GuildChannel channel) {
+        if (member == null || channel == null) return false;
+
+        return !member.hasPermission(channel, Permission.VIEW_CHANNEL);
+    }
+
+    @Nullable
+    public static Member getGuildMember(@Nullable Long id) {
+        if (id == null) return null;
+        try {
+            return getGuild().retrieveMemberById(id).complete();
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    @Nullable
+    public static Long publishInitMessage(long channelId, Function<TextChannel, Long> onPublish) {
+        return publishInitMessage(channelId, onPublish, null);
+    }
+
+    @Nullable
+    public static Long publishInitMessage(long channelId,
+                                          Function<TextChannel, Long> onPublish,
+                                          Consumer<Message> onEdit) {
+        TextChannel channel = getChannelById(channelId);
+        if (channel == null) return null;
+        for (Message m : channel.getHistory().retrievePast(10).complete()) {
+            if (m.getAuthor().getIdLong() == Main.getJDA().getSelfUser().getIdLong()) {
+                if (onEdit != null)
+                    onEdit.accept(m);
+                return m.getIdLong();
+            }
+        }
+        return onPublish.apply(channel);
+    }
+
     public static @NotNull String getEmbedData(@Nullable Object o) {
         String str = o == null ? null : o.toString();
         return str == null || str.isBlank() ? Strings.getInstance().get("str.not_spec") : str;
@@ -159,6 +205,21 @@ public class DsUtils {
     public static TextChannel getChannelById(@Nullable Long channelId) {
         if (channelId == null) return null;
         return guild.getTextChannelById(channelId);
+    }
+
+    @Nullable
+    public static Message getMessageById(@Nullable Long channelId, @Nullable Long messageId) {
+        return getMessageById(getChannelById(channelId), messageId);
+    }
+
+    @Nullable
+    public static Message getMessageById(@Nullable MessageChannel channel, @Nullable Long messageId) {
+        if (messageId == null || channel == null) return null;
+        try {
+            return channel.retrieveMessageById(messageId).complete();
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     @NotNull

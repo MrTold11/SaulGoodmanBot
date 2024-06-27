@@ -4,12 +4,11 @@ import com.mrtold.saulgoodman.api.WebApi;
 import com.mrtold.saulgoodman.database.DatabaseConnector;
 import com.mrtold.saulgoodman.discord.CommandAdapter;
 import com.mrtold.saulgoodman.discord.DsUtils;
+import com.mrtold.saulgoodman.logic.firstaid.FirstAidManager;
 import com.mrtold.saulgoodman.utils.*;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.*;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
@@ -21,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Objects;
 
 /**
  * @author Mr_Told
@@ -59,7 +57,7 @@ public class Main {
     final DatabaseConnector db;
     final WebApi api;
 
-    public Main() throws IOException, InterruptedException {
+    public Main() throws IOException {
         DocUtils.init();
 
         config = Config.getInstance().load(new File("config.json"));
@@ -143,22 +141,14 @@ public class Main {
         cli.start();
 
         initRequestMessage();
+        FirstAidManager.init();
     }
 
-    private void initRequestMessage() throws InterruptedException {
-        jda.awaitReady();
-        TextChannel requestChannel = Objects.requireNonNull(jda.getGuildById(config.getGuildId()))
-                .getTextChannelById(config.getRequestChannelId());
-        if (requestChannel != null) {
-            for (Message m : requestChannel.getHistory().retrievePast(5).complete()) {
-                if (m.getAuthor().getIdLong() == jda.getSelfUser().getIdLong()) {
-                    return;
-                }
-            }
-            requestChannel.sendMessage(s.get("message.request"))
-                    .setActionRow(Button.primary("agreement_request", s.get("embed.button.request_make")))
-                    .complete();
-        }
+    private void initRequestMessage() {
+        DsUtils.publishInitMessage(config.getRequestChannelId(),
+                channel -> channel.sendMessage(s.get("message.request"))
+                        .setActionRow(Button.primary("agreement_request", s.get("embed.button.request_make")))
+                        .complete().getIdLong());
     }
 
     private SlashCommandData generateMemberCommand(String dictKey, OptionData... options) {
