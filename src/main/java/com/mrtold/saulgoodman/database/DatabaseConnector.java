@@ -94,7 +94,7 @@ public class DatabaseConnector {
 
     public @Nullable Client getClientByPass(@Nullable Integer passport) {
         if (passport == null) return null;
-
+        
         Client client = clientsByPass.get(passport);
         if (client != null) return client;
 
@@ -308,6 +308,48 @@ public class DatabaseConnector {
     public void deleteAgreement(@NotNull Agreement agreement) {
         sessionFactory.inTransaction(session -> session.remove(agreement));
     }
+
+
+    @SuppressWarnings({ "deprecation", "unchecked" })
+    public List<Receipt> getReceipts(String parameter, Object value) {
+        Session session =  sessionFactory.getCurrentSession();
+        List<Receipt> result = null;
+
+
+        String queryBase = """
+                    SELECT receipt.id, receipt.issued, receipt.amount, receipt.status, advocate.name, client.name, client.dsuserchannel, receipt.ds_id
+                    FROM receipt 
+                    INNER JOIN client ON receipt.client = client.passport INNER JOIN advocate ON receipt.author = advocate.passport
+                """;
+
+        switch (parameter) {
+            case "ALL":
+                
+                result = session.createNativeQuery(queryBase).getResultList();
+                
+                log.debug("Result of an SQL Query at RECEIPT -> ALL : \n " + result.toString());
+
+                return result;
+            
+            case "ADVOCATE":
+                result = session.createNativeQuery(queryBase + "WHERE advocate.passport = :value").setParameter("value", value).getResultList();
+
+                log.debug("Result of an SQL Query at RECEIPT -> ALL : \n " + result.toString());
+
+                return result;
+
+            case "DAYS":
+                result = session.createNativeQuery(queryBase + "WHERE receipt.issued > current_date - interval ':value DAY'").setParameter("value", value).getResultList();
+
+                log.debug("Result of an SQL Query at RECEIPT -> ALL : \n " + result.toString());
+
+                return result;
+            default:
+                return null;
+        }
+    }   
+
+
 
     public void close() {
         sessionFactory.close();
