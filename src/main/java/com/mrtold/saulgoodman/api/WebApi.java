@@ -105,10 +105,38 @@ public class WebApi {
             
         });
 
+        get("/cases", (request, response) -> {
+            Advocate user = getAdvocate(request);
+
+            String client = request.queryParams("client");
+            String advocate = request.queryParams("advocate");
+            String agreement = request.queryParams("agreement");
+
+            
+            if (client != null) {
+                return db.getReceipts("CLIENT", client);
+            }
+
+            if (advocate != null) {
+                return db.getReceipts("ADVOCATE", advocate);
+            }
+            if (agreement != null) {
+                return db.getReceipts("AGREEMENT", agreement);
+            }
+            
+
+            if (hasNotHighPermission(user.getDsUserId())) {
+                return db.getReceipts("ADVOCATE", user.getPassport());
+            } else {
+                return db.getReceipts("ALL", null);
+            }
+            
+        });
+
         get("/case/:id", (request, response) -> {
             Advocate user = getAdvocate(request);
 
-            return db.getCase(Integer.parseInt(request.params("id")));
+            return db.getCaseDetails(Integer.parseInt(request.params("id")));
         });
 
         post("/case/open", (request, response) -> {

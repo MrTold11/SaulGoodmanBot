@@ -334,20 +334,20 @@ public class DatabaseConnector {
             case "ADVOCATE":
                 result = session.createNativeQuery(queryBase + "WHERE advocate.passport = :value").setParameter("value", value).getResultList();
 
-                log.debug("Result of an SQL Query at RECEIPT -> ALL : \n " + result.toString());
+                log.debug("Result of an SQL Query at RECEIPT -> ADVOCATE : \n " + result.toString());
 
                 return result;
 
             case "DAYS":
                 result = session.createNativeQuery(queryBase + "WHERE receipt.issued > current_date - interval ':value DAY'").setParameter("value", value).getResultList();
 
-                log.debug("Result of an SQL Query at RECEIPT -> ALL : \n " + result.toString());
+                log.debug("Result of an SQL Query at RECEIPT -> DAYS : \n " + result.toString());
 
                 return result;
             default:
                 return null;
         }
-    }   
+    }
 
     @SuppressWarnings({ "deprecation" })
     public void openCase(String name, String description, Advocate advocate) {
@@ -368,15 +368,6 @@ public class DatabaseConnector {
                 (-:advocateID, :caseID)
                 """).setParameter("advocateID", advocate.getPassport()).setParameter("caseID", caseID).executeUpdate();
         
-    }
-
-    public Case getCase(long caseID) {
-        try (Session session = sessionFactory.openSession()) {
-            return session.createQuery("from Case C where C.id = :aId",
-                    Case.class).setParameter("aId", caseID).getSingleResult();
-        } catch (Exception e) {
-            return null;
-        }
     }
 
     @SuppressWarnings({ "deprecation" })
@@ -406,6 +397,70 @@ public class DatabaseConnector {
             }
         } catch (Exception e) {
             log.error("Exception during CLOSE CASE : ", e);
+        }
+    }
+
+    @SuppressWarnings({ "deprecation" })
+    public Case getCaseDetails(long caseID) {
+        Session session = sessionFactory.getCurrentSession();
+        
+        return (Case) session.createNativeQuery("""
+                    select "case".id, "case".opened_date, "case".closed_date, "case".name, "case".description, agreement.number, client.name, client.dsuserchannel, advocate.name
+                    from agreements_cases
+                    inner join agreement on agreements_cases.agreement = agreement.number
+                    inner join client on agreement.client = client.passport
+                    inner join advocate on agreement.advocate = advocate.passport
+                    inner join "case" on agreements_cases."case" = "case".id
+                    where "case".id = :caseID
+                    """).getSingleResultOrNull();
+    }
+
+    @SuppressWarnings({ "deprecation", "unchecked" })
+    public List<Case> getCases(String parameter, Object value) {
+        Session session =  sessionFactory.getCurrentSession();
+        List<Case> result = null;
+
+
+        String queryBase = """
+                    select "case".id, "case".opened_date, "case".closed_date, "case".name, agreement.number, client.name, client.dsuserchannel, advocate.name
+                    from agreements_cases
+                    inner join agreement on agreements_cases.agreement = agreement.number
+                    inner join client on agreement.client = client.passport
+                    inner join advocate on agreement.advocate = advocate.passport
+                    inner join "case" on agreements_cases."case" = "case".id
+                """;
+
+        switch (parameter) {
+            case "ALL":
+                
+                result = session.createNativeQuery(queryBase).getResultList();
+                
+                log.debug("Result of an SQL Query at CASE -> ALL : \n " + result.toString());
+
+                return result;
+            
+            case "ADVOCATE":
+                result = session.createNativeQuery(queryBase + "WHERE advocate.passport = :value").setParameter("value", value).getResultList();
+
+                log.debug("Result of an SQL Query at CASE -> ADVOCATE : \n " + result.toString());
+
+                return result;
+
+            case "CLIENT":
+                result = session.createNativeQuery(queryBase + "WHERE client.passport = :value").setParameter("value", value).getResultList();
+
+                log.debug("Result of an SQL Query at CASE -> CLIENT : \n " + result.toString());
+
+                return result;
+
+            case "AGREEMENT":
+                result = session.createNativeQuery(queryBase + "WHERE agreement.number = :value").setParameter("value", value).getResultList();
+
+                log.debug("Result of an SQL Query at CASE -> AGREEMENT : \n " + result.toString());
+
+                return result;
+            default:
+                return null;
         }
     }
 
