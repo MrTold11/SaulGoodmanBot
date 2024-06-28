@@ -235,15 +235,6 @@ public class DatabaseConnector {
         }
     }
 
-    public @Nullable Case getCaseById(long id) {
-        try (Session session = sessionFactory.openSession()) {
-            return session.createQuery("from Case C where C.id = :aId",
-                    Case.class).setParameter("aId", id).getSingleResult();
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
     public boolean clientHasActiveAgreement(int pass) {
         try (Session session = sessionFactory.openSession()) {
             session.createQuery("from Agreement A where A.client = :cPass and A.status = 1",
@@ -358,6 +349,65 @@ public class DatabaseConnector {
         }
     }   
 
+    @SuppressWarnings({ "deprecation" })
+    public void openCase(String name, String description, Advocate advocate) {
+        Session session =  sessionFactory.getCurrentSession();
+        session.createNativeQuery("""
+                INSERT INTO case 
+                (name, description, opened_date)
+                VALUES 
+                (:name, :description, current_date)
+                """).setParameter("name", name).setParameter("description", description).executeUpdate();
+        long caseID = session.createNativeQuery("""
+                SELECT id FROM case WHERE name = :name
+                """).setParameter("name", name).getFirstResult();
+        session.createNativeQuery("""
+                INSERT INTO agreements_cases 
+                (agreeement, case)
+                VALUES 
+                (-:advocateID, :caseID)
+                """).setParameter("advocateID", advocate.getPassport()).setParameter("caseID", caseID).executeUpdate();
+        
+    }
+
+    public Case getCase(long caseID) {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Case C where C.id = :aId",
+                    Case.class).setParameter("aId", caseID).getSingleResult();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @SuppressWarnings({ "deprecation" })
+    public void closeCase(long caseID, Advocate advocate, boolean notAllowed) {
+        Session session =  sessionFactory.getCurrentSession();
+        try {
+            long is_lawyer_can_close = session.createNativeQuery("""
+                    SELECT id FROM agreements_cases WHERE agreement = -:advocateID, case = :caseID
+                    """).setParameter("advocateID", advocate.getPassport()).setParameter("caseID", caseID).getResultCount();
+            
+            if (is_lawyer_can_close == 1) {
+                            session.createNativeQuery("""
+                                    UPDATE case
+                                    SET closed_date = current_date
+                                    WHERE id = :caseID
+                                    """).setParameter("caseID", caseID);
+            } else {
+                if (notAllowed) {
+                    throw new Exception("This lawyer is not in this case => Is not allowed to close it.");
+                } else {
+                    session.createNativeQuery("""
+                                    UPDATE case
+                                    SET closed_date = current_date
+                                    WHERE id = :caseID
+                                    """).setParameter("caseID", caseID);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Exception during CLOSE CASE : ", e);
+        }
+    }
 
 
     public void close() {

@@ -67,7 +67,6 @@ public class WebApi {
     }
 
     private void init() {
-        initCommonGet("case", db::getCaseById);
         initCommonGet("receipt", db::getReceipt);
         initCommonGet("agreement", db::getAgreementById);
         initCommonGet("advocate", db::getAdvocateByPass);
@@ -105,6 +104,29 @@ public class WebApi {
             }
             
         });
+
+        get("/case/:id", (request, response) -> {
+            Advocate user = getAdvocate(request);
+
+            return db.getCase(Integer.parseInt(request.params("id")));
+        });
+
+        post("/case/open", (request, response) -> {
+            Advocate user = getAdvocate(request);
+
+            db.openCase(request.queryParams("name"), request.queryParams("desctiption"), user);
+
+            return "Successfull!";
+        });
+
+        post("/case/close", (request, response) -> {
+            Advocate user = getAdvocate(request);
+
+            db.closeCase(Integer.parseInt(request.queryParams("caseID")), user, hasNotHighPermission(user.getDsUserId()));
+            
+            return "Successfull!";
+        });
+
 
         get("/advocate", (request, response) -> {
             Advocate user = getAdvocate(request);
