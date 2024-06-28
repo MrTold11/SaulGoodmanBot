@@ -15,6 +15,7 @@ import spark.Request;
 import java.util.List;
 import java.util.function.Function;
 
+import static com.mrtold.saulgoodman.discord.DsUtils.hasNotHighPermission;
 import static spark.Spark.*;
 
 /**
@@ -80,6 +81,29 @@ public class WebApi {
             data.addProperty("name", user.getName());
 
             return data;
+        });
+
+        get("/receipts", (request, response) -> {
+            Advocate user = getAdvocate(request);
+
+            String days = request.queryParams("days");
+            String advocate = request.queryParams("advocate");
+            
+            if (days != null) {
+                return db.getReceipts("DAYS", days);
+            }
+
+            if (advocate != null) {
+                return db.getReceipts("ADVOCATE", advocate);
+            }
+            
+
+            if (hasNotHighPermission(user.getDsUserId())) {
+                return db.getReceipts("ADVOCATE", user.getPassport());
+            } else {
+                return db.getReceipts("ALL", null);
+            }
+            
         });
 
         get("/advocate", (request, response) -> {
