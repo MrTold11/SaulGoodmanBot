@@ -104,7 +104,7 @@ public class FirstAidManager {
                 }, 60, TimeUnit.MINUTES);
             }
 
-            channel.sendMessage(s.get("firstaid_personal_format").formatted(
+            channel.sendMessage(s.get("message.firstaid_personal_format").formatted(
                     DsUtils.getMemberAsMention(request.getClient().getDsUserId()),
                     DsUtils.getMemberAsMention(advocateUserId),
                     DsUtils.getEmbedData(advocate.getPhone()))
