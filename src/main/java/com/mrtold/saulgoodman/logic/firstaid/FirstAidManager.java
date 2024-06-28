@@ -70,6 +70,7 @@ public class FirstAidManager {
                 request = new FirstAidRequest(request.getStart() + 1, client);
             }
             requests.put(request.getStart(), request);
+            lastRequestTime.put(client.getPassport(), request.getStart());
         }
 
         FirstAidUtils.publishRequest(request, onShift);
