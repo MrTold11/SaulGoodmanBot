@@ -14,6 +14,9 @@ import net.dv8tion.jda.api.interactions.commands.build.*;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +53,8 @@ public class Main {
             throw new IllegalStateException("JDA not initialized");
         return jda;
     }
+
+    private static boolean DEBUG = false;
 
     final CLI cli;
     final Strings s;
@@ -170,6 +175,16 @@ public class Main {
         Logger log = LoggerFactory.getLogger(Main.class);
 
         try {
+            for (String arg : args) {
+                if (arg.equalsIgnoreCase("debug")) {
+                    DEBUG = true;
+                    break;
+                }
+            }
+
+            if (DEBUG)
+                Configurator.setAllLevels(LogManager.getRootLogger().getName(), Level.DEBUG);
+
             new Main();
         } catch (Exception e) {
             log.error("Exception during initialization", e);
