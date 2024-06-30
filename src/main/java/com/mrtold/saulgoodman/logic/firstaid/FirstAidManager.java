@@ -61,7 +61,7 @@ public class FirstAidManager {
 
         synchronized (requests) {
             Long previousRequest = lastRequestTime.get(client.getPassport());
-            if (previousRequest != null && System.currentTimeMillis() - previousRequest > 1000 * 60 * 3)
+            if (previousRequest != null && System.currentTimeMillis() - previousRequest < 1000 * 60 * 3)
                 return false;
 
             request = new FirstAidRequest(client);
