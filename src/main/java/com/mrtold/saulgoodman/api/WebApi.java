@@ -73,6 +73,9 @@ public class WebApi {
         initCommonGet("client", db::getClientByPass);
 
         get("/authenticate", (request, response) -> {
+
+            log.info("/api/authenticate REQUEST: " + request.toString());
+
             Advocate user = getAdvocate(request);
             JsonObject data = new JsonObject();
 
@@ -230,9 +233,11 @@ public class WebApi {
     }
 
     private Advocate getAdvocate(Request request) {
+        log.info("/api/authenticate COOKIE(CODE): " + request.cookie("code"));
+
         Long userId = authentication.authenticate(request.cookie("code"));
         if (userId == null) {
-            log.warn("Couldn't find discord id by access code.");
+            log.warn("/api/authenticate UNABLE TO FIND A USER (401)");
             halt(401);
         }
 

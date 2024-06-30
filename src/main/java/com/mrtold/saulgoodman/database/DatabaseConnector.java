@@ -327,21 +327,21 @@ public class DatabaseConnector {
                 
                 result = session.createNativeQuery(queryBase).getResultList();
                 
-                log.debug("Result of an SQL Query at RECEIPT -> ALL : \n " + result.toString());
+                log.info("Result of an SQL Query at RECEIPT -> ALL : \n " + result.toString());
 
                 return result;
             
             case "ADVOCATE":
                 result = session.createNativeQuery(queryBase + "WHERE advocate.passport = :value").setParameter("value", value).getResultList();
 
-                log.debug("Result of an SQL Query at RECEIPT -> ADVOCATE : \n " + result.toString());
+                log.info("Result of an SQL Query at RECEIPT -> ADVOCATE : \n " + result.toString());
 
                 return result;
 
             case "DAYS":
                 result = session.createNativeQuery(queryBase + "WHERE receipt.issued > current_date - interval ':value DAY'").setParameter("value", value).getResultList();
 
-                log.debug("Result of an SQL Query at RECEIPT -> DAYS : \n " + result.toString());
+                log.info("Result of an SQL Query at RECEIPT -> DAYS : \n " + result.toString());
 
                 return result;
             default:
@@ -435,28 +435,28 @@ public class DatabaseConnector {
                 
                 result = session.createNativeQuery(queryBase).getResultList();
                 
-                log.debug("Result of an SQL Query at CASE -> ALL : \n " + result.toString());
+                log.info("Result of an SQL Query at CASE -> ALL : \n " + result.toString());
 
                 return result;
             
             case "ADVOCATE":
                 result = session.createNativeQuery(queryBase + "WHERE advocate.passport = :value").setParameter("value", value).getResultList();
 
-                log.debug("Result of an SQL Query at CASE -> ADVOCATE : \n " + result.toString());
+                log.info("Result of an SQL Query at CASE -> ADVOCATE : \n " + result.toString());
 
                 return result;
 
             case "CLIENT":
                 result = session.createNativeQuery(queryBase + "WHERE client.passport = :value").setParameter("value", value).getResultList();
 
-                log.debug("Result of an SQL Query at CASE -> CLIENT : \n " + result.toString());
+                log.info("Result of an SQL Query at CASE -> CLIENT : \n " + result.toString());
 
                 return result;
 
             case "AGREEMENT":
                 result = session.createNativeQuery(queryBase + "WHERE agreement.number = :value").setParameter("value", value).getResultList();
 
-                log.debug("Result of an SQL Query at CASE -> AGREEMENT : \n " + result.toString());
+                log.info("Result of an SQL Query at CASE -> AGREEMENT : \n " + result.toString());
 
                 return result;
             default:

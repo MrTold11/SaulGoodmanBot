@@ -51,7 +51,8 @@ public class Authentication {
 
     public Long authenticate(String code) {
         
-        log.debug("Authenticating by code : " + code);
+        log.info("Authenticating by code : " + code);
+        log.info("Authenticated user by now : " + authenticatedUsers.toString());
 
         Long discordId = authenticatedUsers.get(code);
         if (discordId == null) {
@@ -73,11 +74,11 @@ public class Authentication {
         
         try {
             JsonObject json = executeRequest(post);
-            log.debug("AUTHENTICATION -> GET TOKEN -> JSON : ", json);
+            log.info("AUTHENTICATION -> GET TOKEN -> JSON : ", json);
 
             return json.get("access_token").getAsString();
         } catch (Exception e) {
-            log.error("ERORR: ", e);
+            log.error("ERORR DURING GETTING AN ACCESS TOKEN TOKEN: ", e);
             return null;
         }
 
@@ -90,7 +91,7 @@ public class Authentication {
         try {
             JsonObject json = executeRequest(get);
 
-            log.debug("AUTHENTICATION -> GET DISCORD ID -> JSON : ", json);
+            log.info("AUTHENTICATION -> GET DISCORD ID -> JSON : ", json);
 
             return Long.parseLong(json.get("id").getAsString());
         } catch (Exception e) {
@@ -105,6 +106,8 @@ public class Authentication {
         try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
             Object response = httpclient.execute(request, r ->
                 r.getCode() == HttpStatus.SC_OK ? EntityUtils.toString(r.getEntity()) : r.getCode());
+            
+                log.info("RESPONSE OF EXECUTING REQUEST ON AUTHENTICATION : " + response.toString());
 
             if (response instanceof Integer) {
                 throw new HttpResponseException(Integer.parseInt(response.toString()), "Invalid response.");
