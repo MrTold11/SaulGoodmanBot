@@ -168,6 +168,7 @@ public class Main {
 
     public static void main(String[] args) {
         Logger log = LoggerFactory.getLogger(Main.class);
+
         try {
             new Main();
         } catch (Exception e) {

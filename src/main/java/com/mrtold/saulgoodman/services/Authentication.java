@@ -6,11 +6,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.hc.client5.http.HttpResponseException;
-import org.apache.hc.client5.http.auth.AuthScope;
-import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
+
+
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
-import org.apache.hc.client5.http.entity.UrlEncodedFormEntity;
 import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
@@ -19,7 +18,7 @@ import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.apache.hc.core5.http.message.BasicNameValuePair;
+import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.google.gson.JsonObject;
@@ -40,17 +39,20 @@ public class Authentication {
     final Map<String, Long> authenticatedUsers = new HashMap<>();
 
 
+    private String clientId = "";
+    private String clientSecret = "";
+    private String redirectUri = "";
+
     public Authentication(String dsClientId, String dsClientSecret, String oAuth2Redirect) {
-        authBodyBase.add(new BasicNameValuePair("grant_type", "authorization_code"));
-        authBodyBase.add(new BasicNameValuePair("redirect_uri", oAuth2Redirect));
-        accessTokenCredsProvider.setCredentials(
-                new AuthScope("discord.com", -1),
-                new UsernamePasswordCredentials(dsClientId, dsClientSecret.toCharArray())
-        );
+        clientId = dsClientId;
+        clientSecret = dsClientSecret;
+        redirectUri = oAuth2Redirect;
     }
 
     public Long authenticate(String code) {
         
+        log.debug("Authenticating by code : " + code);
+
         Long discordId = authenticatedUsers.get(code);
         if (discordId == null) {
             discordId = this.getDiscordId(this.getToken(code));
@@ -61,16 +63,18 @@ public class Authentication {
 
     private String getToken(String code) {
         HttpPost post = new HttpPost(ACCESS_TOKEN_URL);
+        String tokenBody = String.format(
+            "client_id=%s&client_secret=%s&grant_type=authorization_code&code=%s&redirect_uri=%s",
+            clientId, clientSecret, code, redirectUri
+        );
+
+        post.setEntity(new StringEntity(tokenBody));
         post.setHeader("Content-Type", "application/x-www-form-urlencoded");
         
-        List<NameValuePair> bodyPairs = new ArrayList<>(authBodyBase);
-
-        bodyPairs.add(new BasicNameValuePair("code", code));
-        post.setEntity(new UrlEncodedFormEntity(bodyPairs));
-
-
         try {
             JsonObject json = executeRequest(post);
+            log.debug("AUTHENTICATION -> GET TOKEN -> JSON : ", json);
+
             return json.get("access_token").getAsString();
         } catch (Exception e) {
             log.error("ERORR: ", e);
@@ -85,6 +89,9 @@ public class Authentication {
 
         try {
             JsonObject json = executeRequest(get);
+
+            log.debug("AUTHENTICATION -> GET DISCORD ID -> JSON : ", json);
+
             return Long.parseLong(json.get("id").getAsString());
         } catch (Exception e) {
             log.error("ERORR: ", e);

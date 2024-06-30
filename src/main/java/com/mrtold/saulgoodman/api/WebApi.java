@@ -81,7 +81,7 @@ public class WebApi {
 
             return data;
         });
-
+        
         get("/receipts", (request, response) -> {
             Advocate user = getAdvocate(request);
 
@@ -154,7 +154,6 @@ public class WebApi {
             
             return "Successfull!";
         });
-
 
         get("/advocate", (request, response) -> {
             Advocate user = getAdvocate(request);

@@ -45,4 +45,6 @@ bin/
 
 # Saved Docker-Image
 *.tar
+
+# Logs
 *.log
