@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Request;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
@@ -91,20 +93,24 @@ public class WebApi {
             String days = request.queryParams("days");
             String advocate = request.queryParams("advocate");
             
+            List<Receipt> result = new ArrayList<Receipt>();
+
             if (days != null) {
-                return db.getReceipts("DAYS", days);
+                result = db.getReceipts("DAYS", days);
             }
 
             if (advocate != null) {
-                return db.getReceipts("ADVOCATE", advocate);
+                result =  db.getReceipts("ADVOCATE", advocate);
             }
             
 
             if (hasNotHighPermission(user.getDsUserId())) {
-                return db.getReceipts("ADVOCATE", user.getPassport());
+                result =  db.getReceipts("ADVOCATE", user.getPassport());
             } else {
-                return db.getReceipts("ALL", null);
+                result =  db.getReceipts("ALL", null);
             }
+
+            return gson.toJson(result);
             
         });
 
