@@ -19,7 +19,7 @@ set JAR_FILE=.\dir\SaulGoodmanBot-1.0-SNAPSHOT.jar
 rem Define the server details
 set SERVER_USER=root
 set SERVER_IP=159.89.110.20
-set REMOTE_DIR=/bot
+set REMOTE_DIR=/root/bot/
 
 rem Verify if the JAR file exists
 if not exist %JAR_FILE% (
