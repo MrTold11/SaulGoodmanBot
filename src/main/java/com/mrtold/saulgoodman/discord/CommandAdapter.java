@@ -463,7 +463,7 @@ public class CommandAdapter extends ListenerAdapter {
                     advocate.getSignature(), deadline, target, body, agreement, rNum);
             Set<FileUpload> files = Collections.singleton(
                     FileUpload.fromData(new ByteArrayInputStream(request), "mba_lg_request_%d.jpg".formatted(rNum)));
-            event.getHook().sendFiles(files).queue();
+            event.getHook().sendMessage(body).addFiles(files).queue();
         } else if (event.getModalId().startsWith("agreement_link_")) {
             event.deferReply(true).queue();
             if (event.getMessage() != null)
