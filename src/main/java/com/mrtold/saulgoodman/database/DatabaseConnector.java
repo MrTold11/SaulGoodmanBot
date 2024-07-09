@@ -62,8 +62,8 @@ public class DatabaseConnector {
                             .addAnnotatedClass(Client.class)
                             .addAnnotatedClass(Advocate.class)
                             .addAnnotatedClass(Agreement.class)
-                            .addAnnotatedClass(AgreementCases.class)
-                            .addAnnotatedClass(Case.class)
+                            .addAnnotatedClass(Claim.class)
+                            .addAnnotatedClass(Evidence.class)
                             .addAnnotatedClass(Receipt.class)
                             .buildMetadata()
                             .buildSessionFactory();
@@ -83,8 +83,7 @@ public class DatabaseConnector {
 
     private void cacheClient(Client client) {
         clientsByPass.put(client.getPassport(), client);
-        if (client.getDsUserId() != null)
-            clientsByDiscord.put(client.getDsUserId(), client);
+        clientsByDiscord.put(client.getDsUserId(), client);
     }
 
     private void cacheAdvocate(Advocate advocate) {
@@ -147,7 +146,7 @@ public class DatabaseConnector {
         return getClientByDiscord(dsId);
     }
 
-    public @NotNull Client getOrCreateClient(Integer passport, Long dsId, String name) {
+    public @NotNull Client getOrCreateClient(Integer passport, long dsId, String name) {
         Client client = getClientByPass(passport);
         if (client == null)
            return saveClient(new Client(passport, dsId, name, null));
@@ -191,13 +190,12 @@ public class DatabaseConnector {
         }
     }
 
-    public @NotNull List<Case> getAdvocateCases(int pass, int limit) {
+    public @NotNull List<Claim> getAdvocateCases(int pass, int limit) {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery(
-                    "select C from Case C, AgreementCases AC, Agreement A " +
-                            "where A.advocate = :pass and AC.agreement = A.id and C.id = AC.case_ " +
-                            "order by C.id desc",
-                            Case.class)
+                    //todo WHERE C has ADVOCATE
+                    "select C from Claim C where C.advocates = :pass order by C.id desc",
+                            Claim.class)
                     .setMaxResults(limit)
                     .setParameter("pass", pass).getResultList();
         }
@@ -301,8 +299,7 @@ public class DatabaseConnector {
     public void deleteClient(@NotNull Client client) {
         sessionFactory.inTransaction(session -> session.remove(client));
         clientsByPass.remove(client.getPassport());
-        if (client.getDsUserId() != null)
-            clientsByDiscord.remove(client.getDsUserId());
+        clientsByDiscord.remove(client.getDsUserId());
     }
 
     public void deleteAgreement(@NotNull Agreement agreement) {

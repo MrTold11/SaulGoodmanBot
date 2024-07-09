@@ -311,7 +311,7 @@ public class CommandAdapter extends ListenerAdapter {
 
             int pass = Integer.parseInt(buttonId.split("_")[2]);
             Client client = db.getClientByPass(pass);
-            if (client == null || client.getDsUserChannel() == null || client.getDsUserId() == null) {
+            if (client == null || client.getDsUserChannel() == null) {
                 event.getHook().sendMessage(s.get("cmd.err.client_nf")).queue(MSG_DELETE_10);
                 return;
             }

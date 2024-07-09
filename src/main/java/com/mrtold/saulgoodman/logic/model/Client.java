@@ -13,12 +13,19 @@ public class Client {
     @Id
     int passport;
     String name;
-    @Nullable
-    Long dsUserId;
+
+    long dsUserId;
+    //todo replace with cases channels
     @Nullable
     Long dsUserChannel;
 
-    public Client(int passport, @Nullable Long dsUserId, String name, @Nullable Long dsUserChannel) {
+    Integer agreement;
+
+    Integer phone;
+    @Column(name = "id_card")
+    String passportLink;
+
+    public Client(int passport, long dsUserId, String name, @Nullable Long dsUserChannel) {
         this.passport = passport;
         this.dsUserId = dsUserId;
         this.name = name;
@@ -35,8 +42,7 @@ public class Client {
         this.passport = passport;
     }
 
-    @Nullable
-    public Long getDsUserId() {
+    public long getDsUserId() {
         return dsUserId;
     }
 
@@ -61,8 +67,27 @@ public class Client {
         this.dsUserChannel = dsUserChannel;
     }
 
-    public void setDsUserId(@Nullable Long dsUserId) {
-        this.dsUserId = dsUserId;
+    public Integer getAgreement() {
+        return agreement;
     }
 
+    public void setAgreement(Integer agreement) {
+        this.agreement = agreement;
+    }
+
+    public Integer getPhone() {
+        return phone;
+    }
+
+    public void setPhone(Integer phone) {
+        this.phone = phone;
+    }
+
+    public String getPassportLink() {
+        return passportLink;
+    }
+
+    public void setPassportLink(String passportLink) {
+        this.passportLink = passportLink;
+    }
 }

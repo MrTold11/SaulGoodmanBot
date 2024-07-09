@@ -3,6 +3,8 @@ package com.mrtold.saulgoodman.logic.model;
 import com.google.gson.annotations.Expose;
 import jakarta.persistence.*;
 
+import java.util.Date;
+
 /**
  * @author Mr_Told
  */
@@ -14,31 +16,39 @@ public class Advocate {
     int passport;
     String name;
     long dsUserId;
+    int role; // 0 - advocate, 1 - head
+
     @Expose
     byte[] signature;
-    int active;
 
-    String passLink, licenseLink, signatureLink;
+    String passLink, licenseLink, signatureLink, profilePicture;
     Integer phone;
+
+    Date joined, resigned;
 
     public Advocate(int passport, long dsUserId, String name, byte[] signature) {
         this.passport = passport;
         this.dsUserId = dsUserId;
         this.name = name;
         this.signature = signature;
-        active = 1;
+        this.joined = new Date();
     }
 
-    public Advocate(int passport, String name, long dsUserId, byte[] signature,
-                    String passLink, String licenseLink, String signatureLink, Integer phone) {
+    public Advocate(int passport, String name, long dsUserId, int role, byte[] signature,
+                    String passLink, String licenseLink, String signatureLink, String profilePicture,
+                    Integer phone, Date joined, Date resigned) {
         this.passport = passport;
         this.name = name;
         this.dsUserId = dsUserId;
+        this.role = role;
         this.signature = signature;
         this.passLink = passLink;
         this.licenseLink = licenseLink;
         this.signatureLink = signatureLink;
+        this.profilePicture = profilePicture;
         this.phone = phone;
+        this.joined = joined;
+        this.resigned = resigned;
     }
 
     public Advocate() {}
@@ -107,16 +117,40 @@ public class Advocate {
         this.dsUserId = dsUserId;
     }
 
-    public int getActive() {
-        return active;
+    public int getRole() {
+        return role;
     }
 
-    public void setActive(int active) {
-        this.active = active;
+    public void setRole(int role) {
+        this.role = role;
+    }
+
+    public String getProfilePicture() {
+        return profilePicture;
+    }
+
+    public void setProfilePicture(String profilePicture) {
+        this.profilePicture = profilePicture;
+    }
+
+    public Date getJoined() {
+        return joined;
+    }
+
+    public void setJoined(Date joined) {
+        this.joined = joined;
+    }
+
+    public Date getResigned() {
+        return resigned;
+    }
+
+    public void setResigned(Date resigned) {
+        this.resigned = resigned;
     }
 
     public boolean isNotActive() {
-        return active != 1;
+        return resigned != null;
     }
 
 }
