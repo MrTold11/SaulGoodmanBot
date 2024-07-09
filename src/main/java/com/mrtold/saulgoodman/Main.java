@@ -5,6 +5,7 @@ import com.mrtold.saulgoodman.database.DatabaseConnector;
 import com.mrtold.saulgoodman.discord.CommandAdapter;
 import com.mrtold.saulgoodman.discord.DsUtils;
 import com.mrtold.saulgoodman.logic.firstaid.FirstAidManager;
+import com.mrtold.saulgoodman.logic.lawrequest.LawRequestManager;
 import com.mrtold.saulgoodman.utils.*;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -147,6 +148,7 @@ public class Main {
 
         initRequestMessage();
         FirstAidManager.init();
+        LawRequestManager.init();
     }
 
     private void initRequestMessage() {

@@ -8,6 +8,8 @@ import com.mrtold.saulgoodman.logic.endpoint.attach.AttachName;
 import com.mrtold.saulgoodman.logic.endpoint.attach.AttachPhone;
 import com.mrtold.saulgoodman.logic.endpoint.attach.AttachSignature;
 import com.mrtold.saulgoodman.logic.firstaid.FirstAidManager;
+import com.mrtold.saulgoodman.logic.lawrequest.LawRequestDraft;
+import com.mrtold.saulgoodman.logic.lawrequest.LawRequestManager;
 import com.mrtold.saulgoodman.logic.model.Advocate;
 import com.mrtold.saulgoodman.logic.model.Agreement;
 import com.mrtold.saulgoodman.logic.model.Client;
@@ -162,40 +164,7 @@ public class CommandAdapter extends ListenerAdapter {
                 break;
 
             case Main.CMD_REQUEST:
-                Advocate advocate = db.getAdvocateByDiscord(advocateId);
-                if (advocate == null) {
-                    logAdvocateNf(event.getUser().getName());
-                    event.reply(s.get("cmd.err.no_perm")).setEphemeral(true).queue();
-                    return;
-                }
-
-                Client client = db.getClientByChannel(event.getChannelIdLong());
-                if (client == null) {
-                    event.reply(s.get("cmd.err.client_nf")).setEphemeral(true).queue();
-                    return;
-                }
-
-                Agreement agreement = db.getActiveAgreement(client.getPassport());
-                if (agreement == null || agreement.getStatus() != 1) {
-                    event.reply(s.get("cmd.err.agreement_nf")).setEphemeral(true).queue();
-                    return;
-                }
-
-                TextInput reqFormNum = DsUtils.formTextInput("request_num", "num",
-                        TextInputStyle.SHORT, 1, 5, true);
-                TextInput reqFormBody = DsUtils.formTextInput("request_body", "body",
-                        TextInputStyle.PARAGRAPH, 10, 4000, true);
-                TextInput reqFormTarget = DsUtils.formTextInput("request_target", "target",
-                        TextInputStyle.SHORT, 10, 500, true);
-                TextInput reqFormDeadline = DsUtils.formTextInput("request_deadline", "deadline",
-                        TextInputStyle.SHORT, 10, 100, true);
-
-                Modal modal = Modal.create("request_form_%d".formatted(agreement.getNumber()), s.get("embed.modal.request"))
-                        .addComponents(
-                                ActionRow.of(reqFormNum), ActionRow.of(reqFormBody),
-                                ActionRow.of(reqFormTarget), ActionRow.of(reqFormDeadline))
-                        .build();
-                event.replyModal(modal).queue();
+                LawRequestManager.getInstance().onRequestCommand(event);
                 break;
 
             default:
@@ -379,6 +348,20 @@ public class CommandAdapter extends ListenerAdapter {
                 event.getMessage().editMessage(s.get("str.rolled_back")).setFiles(Collections.emptyList()).queue();
                 event.getHook().sendMessage(s.get("str.agreement_cancelled")).queue(MSG_DELETE_10);
             }
+        } else if (buttonId.startsWith("lrd_")) {
+            long userId = event.getUser().getIdLong();
+            long channelId = event.getChannelIdLong();
+            if (buttonId.equals("lrd_cancel")) {
+                LawRequestManager.getInstance().purgeDraft(userId, channelId);
+            } else if (buttonId.equals("lrd_open")) {
+                LawRequestDraft draft = LawRequestManager.getInstance().getDraft(userId, channelId);
+                if (draft == null) {
+                    event.reply(s.get("str.request_nf")).setEphemeral(true).queue();
+                    event.getMessage().delete().queue();
+                    return;
+                }
+                openAdvocateRequestForm(event, draft);
+            }
         }
     }
 
@@ -510,6 +493,24 @@ public class CommandAdapter extends ListenerAdapter {
             event.getHook().sendMessage(s.get("cmd.err.no_perm")).queue(MSG_DELETE_10);
         }
         return advocate;
+    }
+
+    private void openAdvocateRequestForm(ButtonInteractionEvent event, LawRequestDraft draft) {
+        TextInput reqFormNum = DsUtils.formTextInput("request_num", "num",
+                TextInputStyle.SHORT, 1, 5, true);
+        TextInput reqFormBody = DsUtils.formTextInput("request_body", "body",
+                TextInputStyle.PARAGRAPH, 10, 4000, true);
+        TextInput reqFormTarget = DsUtils.formTextInput("request_target", "target",
+                TextInputStyle.SHORT, 10, 500, true);
+        TextInput reqFormDeadline = DsUtils.formTextInput("request_deadline", "deadline",
+                TextInputStyle.SHORT, 10, 100, true);
+
+        Modal modal = Modal.create("request_form_%d".formatted(draft.getAgreement()), s.get("embed.modal.request"))
+                .addComponents(
+                        ActionRow.of(reqFormNum), ActionRow.of(reqFormBody),
+                        ActionRow.of(reqFormTarget), ActionRow.of(reqFormDeadline))
+                .build();
+        event.replyModal(modal).queue();
     }
 
     private void logAdvocateNf(String name) {

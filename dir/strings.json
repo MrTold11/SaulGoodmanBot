@@ -96,7 +96,8 @@
       "shift_registry": "Адвокаты на смене",
       "receipt": "Выставлен счет",
       "agreement_request": "Заявка нового клиента",
-      "firstaid_request": "Срочный вызов"
+      "firstaid_request": "Срочный вызов",
+      "law_request": "Адвокатский запрос"
     },
     "footer": {
       "icon": "https://i.imgur.com/4cJIDXV.png"
@@ -110,7 +111,8 @@
       "published": "Опубликовано",
       "cancel": "Отменить",
       "firstaid_enter": "Заступить на дежурство",
-      "firstaid_exit": "Уйти с дежурства"
+      "firstaid_exit": "Уйти с дежурства",
+      "edit": "Редактировать"
     },
     "modal": {
       "ag_request": "Заявка",
