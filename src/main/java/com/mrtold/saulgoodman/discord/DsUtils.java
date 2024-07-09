@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
@@ -174,6 +175,15 @@ public class DsUtils {
         if (roleId == null) return Strings.getInstance().get("str.not_spec");
         if (roleId == guild.getPublicRole().getIdLong()) return "@everyone";
         return "<@&" + roleId + ">";
+    }
+
+    public static @NotNull String getChannelAsMention(@Nullable Channel channel) {
+        return getChannelAsMention(channel == null ? null : channel.getIdLong());
+    }
+
+    public static @NotNull String getChannelAsMention(@Nullable Long channelId) {
+        if (channelId == null) return Strings.getInstance().get("str.not_spec");
+        return "<#" + channelId + ">";
     }
 
     @NotNull

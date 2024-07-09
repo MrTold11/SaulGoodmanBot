@@ -112,7 +112,7 @@ public class FirstAidManager {
             ).queue();
         }
 
-        onResult.accept(s.get("str.request_accepted"));
+        onResult.accept(s.get("str.request_accepted").formatted(DsUtils.getChannelAsMention(channel)));
     }
 
     public Long getShiftRegistryMessageId() {
