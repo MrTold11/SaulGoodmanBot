@@ -312,7 +312,7 @@ public class DatabaseConnector {
 
     @SuppressWarnings({ "deprecation", "unchecked" })
     public List<Receipt> getReceipts(String parameter, Object value) {
-        Session session =  sessionFactory.getCurrentSession();
+        Session session =  sessionFactory.openSession();
         List<Receipt> result = null;
 
 
@@ -323,35 +323,32 @@ public class DatabaseConnector {
                 """;
 
         switch (parameter) {
-            case "ALL":
-                
+            case "ALL":    
                 result = session.createNativeQuery(queryBase).getResultList();
                 
                 log.info("Result of an SQL Query at RECEIPT -> ALL : \n " + result.toString());
-
-                return result;
-            
+                break;
             case "ADVOCATE":
                 result = session.createNativeQuery(queryBase + "WHERE advocate.passport = :value").setParameter("value", value).getResultList();
-
+                
                 log.info("Result of an SQL Query at RECEIPT -> ADVOCATE : \n " + result.toString());
-
-                return result;
-
+                break;
             case "DAYS":
                 result = session.createNativeQuery(queryBase + "WHERE receipt.issued > current_date - interval ':value DAY'").setParameter("value", value).getResultList();
-
+                
                 log.info("Result of an SQL Query at RECEIPT -> DAYS : \n " + result.toString());
-
-                return result;
+                break;
             default:
-                return null;
+                result = null;
+                break;
         }
+        session.close();
+        return result;
     }
 
     @SuppressWarnings({ "deprecation" })
     public void openCase(String name, String description, Advocate advocate) {
-        Session session =  sessionFactory.getCurrentSession();
+        Session session =  sessionFactory.openSession();
         session.createNativeQuery("""
                 INSERT INTO case 
                 (name, description, opened_date)
@@ -367,18 +364,18 @@ public class DatabaseConnector {
                 VALUES 
                 (-:advocateID, :caseID)
                 """).setParameter("advocateID", advocate.getPassport()).setParameter("caseID", caseID).executeUpdate();
-        
+        session.close();
     }
 
     @SuppressWarnings({ "deprecation" })
     public void closeCase(long caseID, Advocate advocate, boolean notAllowed) {
-        Session session =  sessionFactory.getCurrentSession();
+        Session session =  sessionFactory.openSession();
         try {
-            long is_lawyer_can_close = session.createNativeQuery("""
+            long isLawyerCanClose = session.createNativeQuery("""
                     SELECT id FROM agreements_cases WHERE agreement = -:advocateID, case = :caseID
                     """).setParameter("advocateID", advocate.getPassport()).setParameter("caseID", caseID).getResultCount();
             
-            if (is_lawyer_can_close == 1) {
+            if (isLawyerCanClose == 1) {
                             session.createNativeQuery("""
                                     UPDATE case
                                     SET closed_date = current_date
@@ -398,13 +395,14 @@ public class DatabaseConnector {
         } catch (Exception e) {
             log.error("Exception during CLOSE CASE : ", e);
         }
+        session.close();
     }
 
     @SuppressWarnings({ "deprecation" })
     public Case getCaseDetails(long caseID) {
-        Session session = sessionFactory.getCurrentSession();
+        Session session = sessionFactory.openSession();
         
-        return (Case) session.createNativeQuery("""
+        Case result = (Case) session.createNativeQuery("""
                     select "case".id, "case".opened_date, "case".closed_date, "case".name, "case".description, agreement.number, client.name, client.dsuserchannel, advocate.name
                     from agreements_cases
                     inner join agreement on agreements_cases.agreement = agreement.number
@@ -413,11 +411,18 @@ public class DatabaseConnector {
                     inner join "case" on agreements_cases."case" = "case".id
                     where "case".id = :caseID
                     """).getSingleResultOrNull();
+        
+        log.info(result.toString());
+
+        session.close();
+
+        return result;
+
     }
 
     @SuppressWarnings({ "deprecation", "unchecked" })
     public List<Case> getCases(String parameter, Object value) {
-        Session session =  sessionFactory.getCurrentSession();
+        Session session =  sessionFactory.openSession();
         List<Case> result = null;
 
 
@@ -437,31 +442,31 @@ public class DatabaseConnector {
                 
                 log.info("Result of an SQL Query at CASE -> ALL : \n " + result.toString());
 
-                return result;
-            
+                break;            
             case "ADVOCATE":
                 result = session.createNativeQuery(queryBase + "WHERE advocate.passport = :value").setParameter("value", value).getResultList();
 
                 log.info("Result of an SQL Query at CASE -> ADVOCATE : \n " + result.toString());
 
-                return result;
-
+                break;
             case "CLIENT":
                 result = session.createNativeQuery(queryBase + "WHERE client.passport = :value").setParameter("value", value).getResultList();
 
                 log.info("Result of an SQL Query at CASE -> CLIENT : \n " + result.toString());
 
-                return result;
-
+                break;
             case "AGREEMENT":
                 result = session.createNativeQuery(queryBase + "WHERE agreement.number = :value").setParameter("value", value).getResultList();
 
                 log.info("Result of an SQL Query at CASE -> AGREEMENT : \n " + result.toString());
 
-                return result;
+                break;
             default:
-                return null;
+                result = null;
+                break;
         }
+        session.close();
+        return result;
     }
 
 

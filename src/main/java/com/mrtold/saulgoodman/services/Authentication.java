@@ -59,6 +59,8 @@ public class Authentication {
             discordId = this.getDiscordId(this.getToken(code));
         }
         
+        authenticatedUsers.put(code, discordId);
+
         return discordId;
     }
 
