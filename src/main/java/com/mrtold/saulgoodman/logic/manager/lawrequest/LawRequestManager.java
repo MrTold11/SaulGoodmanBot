@@ -1,10 +1,10 @@
-package com.mrtold.saulgoodman.logic.endpoint.manager.lawrequest;
+package com.mrtold.saulgoodman.logic.manager.lawrequest;
 
 import com.mrtold.saulgoodman.Main;
 import com.mrtold.saulgoodman.database.DatabaseConnector;
 import com.mrtold.saulgoodman.discord.DsUtils;
 import com.mrtold.saulgoodman.discord.event.DiscordEventManager;
-import com.mrtold.saulgoodman.logic.endpoint.manager.AbstractLogicManager;
+import com.mrtold.saulgoodman.logic.manager.AbstractLogicManager;
 import com.mrtold.saulgoodman.logic.model.Advocate;
 import com.mrtold.saulgoodman.logic.model.Agreement;
 import com.mrtold.saulgoodman.logic.model.Client;

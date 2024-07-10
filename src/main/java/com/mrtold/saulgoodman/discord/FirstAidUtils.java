@@ -1,8 +1,8 @@
 package com.mrtold.saulgoodman.discord;
 
 import com.mrtold.saulgoodman.Config;
-import com.mrtold.saulgoodman.logic.endpoint.manager.firstaid.FirstAidManager;
-import com.mrtold.saulgoodman.logic.endpoint.manager.firstaid.FirstAidRequest;
+import com.mrtold.saulgoodman.logic.manager.firstaid.FirstAidManager;
+import com.mrtold.saulgoodman.logic.manager.firstaid.FirstAidRequest;
 import com.mrtold.saulgoodman.logic.model.Advocate;
 import com.mrtold.saulgoodman.utils.Strings;
 import net.dv8tion.jda.api.entities.Message;
@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Set;
 
 /**

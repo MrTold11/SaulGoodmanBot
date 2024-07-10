@@ -1,7 +1,6 @@
 package com.mrtold.saulgoodman.discord.event;
 
 import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
-import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 
 import java.util.function.Consumer;
 import java.util.function.Function;

@@ -1,4 +1,4 @@
-package com.mrtold.saulgoodman.logic.endpoint.manager;
+package com.mrtold.saulgoodman.logic.manager;
 
 import com.mrtold.saulgoodman.discord.event.DiscordEventManager;
 import com.mrtold.saulgoodman.logic.endpoint.CloseBill;

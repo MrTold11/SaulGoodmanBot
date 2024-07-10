@@ -1,4 +1,4 @@
-package com.mrtold.saulgoodman.logic.endpoint.manager;
+package com.mrtold.saulgoodman.logic.manager;
 
 import com.mrtold.saulgoodman.Config;
 import com.mrtold.saulgoodman.database.DatabaseConnector;

@@ -1,10 +1,10 @@
-package com.mrtold.saulgoodman.logic.endpoint.manager.firstaid;
+package com.mrtold.saulgoodman.logic.manager.firstaid;
 
 import com.mrtold.saulgoodman.database.DatabaseConnector;
 import com.mrtold.saulgoodman.discord.DsUtils;
 import com.mrtold.saulgoodman.discord.FirstAidUtils;
 import com.mrtold.saulgoodman.discord.event.DiscordEventManager;
-import com.mrtold.saulgoodman.logic.endpoint.manager.AbstractLogicManager;
+import com.mrtold.saulgoodman.logic.manager.AbstractLogicManager;
 import com.mrtold.saulgoodman.logic.model.Advocate;
 import com.mrtold.saulgoodman.logic.model.Client;
 import com.mrtold.saulgoodman.utils.Strings;
