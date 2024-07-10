@@ -1,4 +1,4 @@
-package com.mrtold.saulgoodman.logic.firstaid;
+package com.mrtold.saulgoodman.logic.endpoint.manager.firstaid;
 
 import com.mrtold.saulgoodman.logic.model.Client;
 

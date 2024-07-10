@@ -1,8 +1,8 @@
 package com.mrtold.saulgoodman.discord;
 
 import com.mrtold.saulgoodman.Config;
-import com.mrtold.saulgoodman.logic.firstaid.FirstAidManager;
-import com.mrtold.saulgoodman.logic.firstaid.FirstAidRequest;
+import com.mrtold.saulgoodman.logic.endpoint.manager.firstaid.FirstAidManager;
+import com.mrtold.saulgoodman.logic.endpoint.manager.firstaid.FirstAidRequest;
 import com.mrtold.saulgoodman.logic.model.Advocate;
 import com.mrtold.saulgoodman.utils.Strings;
 import net.dv8tion.jda.api.entities.Message;
@@ -58,7 +58,6 @@ public class FirstAidUtils {
             }
         }
 
-        Strings s = Strings.getInstance();
         StringBuilder builder = new StringBuilder("Имя, Фамилия - Тег - Телефон\n");
 
         for (Advocate advocate : onShift) {
@@ -69,15 +68,14 @@ public class FirstAidUtils {
         }
 
         registry.editMessageEmbeds(
-                DsUtils.prepareEmbedBuilder(15132410, s.get("embed.title.shift_registry"))
+                DsUtils.prepareEmbedBuilder(15132410, Strings.getS("embed.title.shift_registry"))
                         .setDescription(builder.toString())
                         .build()).queue();
     }
 
     public static void publishRequest(FirstAidRequest request, Set<Advocate> onShift) {
-        Config config = Config.getInstance();
         Strings s = Strings.getInstance();
-        Objects.requireNonNull(DsUtils.getChannelById(config.getRequestsChannelId()))
+        DsUtils.getRequestsChannel()
                 .sendMessage(MessageCreateData.fromEmbeds(
                         DsUtils.prepareEmbedBuilder(14357564, s.get("embed.title.firstaid_request"))
                                 .setDescription(String.format(Locale.getDefault(),

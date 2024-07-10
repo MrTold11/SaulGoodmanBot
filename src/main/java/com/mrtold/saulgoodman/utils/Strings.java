@@ -69,6 +69,10 @@ public class Strings {
         return s;
     }
 
+    public static String getS(String key) {
+        return getInstance().get(key);
+    }
+
     public Strings override(String key, String value) {
         dict.put(key, value);
         return this;

@@ -14,8 +14,10 @@ import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
+import net.dv8tion.jda.api.events.interaction.ModalInteractionEvent;
 import net.dv8tion.jda.api.interactions.components.text.TextInput;
 import net.dv8tion.jda.api.interactions.components.text.TextInputStyle;
+import net.dv8tion.jda.api.interactions.modals.ModalMapping;
 import net.dv8tion.jda.api.managers.channel.concrete.TextChannelManager;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -60,6 +62,10 @@ public class DsUtils {
 
     public static TextChannel getAuditChannel() {
         return guild.getTextChannelById(Config.getInstance().getAuditChannelId());
+    }
+
+    public static TextChannel getRequestsChannel() {
+        return guild.getTextChannelById(Config.getInstance().getRequestsChannelId());
     }
 
     public static void addRoleToMember(Long dsId, long roleId) {
@@ -163,16 +169,16 @@ public class DsUtils {
 
     public static @NotNull String getEmbedData(@Nullable Object o) {
         String str = o == null ? null : o.toString();
-        return str == null || str.isBlank() ? Strings.getInstance().get("str.not_spec") : str;
+        return str == null || str.isBlank() ? Strings.getS("str.not_spec") : str;
     }
 
     public static @NotNull String getMemberAsMention(@Nullable Long dsId) {
-        if (dsId == null) return Strings.getInstance().get("str.not_spec");
+        if (dsId == null) return Strings.getS("str.not_spec");
         return "<@" + dsId + ">";
     }
 
     public static @NotNull String getRoleAsMention(@Nullable Long roleId) {
-        if (roleId == null) return Strings.getInstance().get("str.not_spec");
+        if (roleId == null) return Strings.getS("str.not_spec");
         if (roleId == guild.getPublicRole().getIdLong()) return "@everyone";
         return "<@&" + roleId + ">";
     }
@@ -182,7 +188,7 @@ public class DsUtils {
     }
 
     public static @NotNull String getChannelAsMention(@Nullable Long channelId) {
-        if (channelId == null) return Strings.getInstance().get("str.not_spec");
+        if (channelId == null) return Strings.getS("str.not_spec");
         return "<#" + channelId + ">";
     }
 
@@ -250,7 +256,7 @@ public class DsUtils {
             channel.getManager().setName(name).queue();
         }
 
-        channel.getManager().setTopic(Strings.getInstance().get("str.personal_channel_topic_pass_ag")
+        channel.getManager().setTopic(Strings.getS("str.personal_channel_topic_pass_ag")
                 .formatted(clientPass, getEmbedData(agNum))).queue();
 
         if (channel.getParentCategory() == null ||
@@ -293,6 +299,13 @@ public class DsUtils {
                 .setMaxLength(maxLen)
                 .setRequired(required)
                 .build();
+    }
+
+    @Nullable
+    public static String extractModalValue(@NotNull ModalInteractionEvent event, @NotNull String id) {
+        ModalMapping m = event.getValue(id);
+        if (m == null) return null;
+        return m.getAsString();
     }
 
 }

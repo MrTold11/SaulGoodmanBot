@@ -1,4 +1,4 @@
-package com.mrtold.saulgoodman.logic.lawrequest;
+package com.mrtold.saulgoodman.logic.endpoint.manager.lawrequest;
 
 /**
  * @author Mr_Told
