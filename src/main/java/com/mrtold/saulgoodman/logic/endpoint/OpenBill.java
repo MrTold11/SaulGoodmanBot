@@ -83,7 +83,8 @@ public class OpenBill extends Endpoint {
                                 client.getName(),
                                 client.getPassport(),
                                 DsUtils.getMemberAsMention(advocate.getDsUserId()),
-                                amount)).build());
+                                amount,
+                                s.get("setting.bureau_bank_account"))).build());
 
         r.setDs_id(DsUtils.getAuditChannel().sendMessage(mcd).setActionRow(
                 Button.success("bill_payed_%d".formatted(r.getId()), s.get("embed.button.payed")))
