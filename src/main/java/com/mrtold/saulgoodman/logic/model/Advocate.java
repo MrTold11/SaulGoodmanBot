@@ -16,6 +16,7 @@ public class Advocate {
     int passport;
     String name;
     long dsUserId;
+    @Column(columnDefinition = "int default 0")
     int role; // 0 - advocate, 1 - head
 
     @Expose

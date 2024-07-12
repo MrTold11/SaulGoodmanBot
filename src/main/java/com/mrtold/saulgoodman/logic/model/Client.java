@@ -22,8 +22,7 @@ public class Client {
     Integer agreement;
 
     Integer phone;
-    @Column(name = "id_card")
-    String passportLink;
+    String passportLink, agreementLink;
 
     public Client(int passport, long dsUserId, String name, @Nullable Long dsUserChannel) {
         this.passport = passport;
@@ -89,5 +88,13 @@ public class Client {
 
     public void setPassportLink(String passportLink) {
         this.passportLink = passportLink;
+    }
+
+    public String getAgreementLink() {
+        return agreementLink;
+    }
+
+    public void setAgreementLink(String agreementLink) {
+        this.agreementLink = agreementLink;
     }
 }

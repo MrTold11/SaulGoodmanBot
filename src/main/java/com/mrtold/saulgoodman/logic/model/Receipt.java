@@ -26,6 +26,7 @@ public class Receipt {
     @Column(nullable = false)
     @NotNull
     Date issued;
+    Date updated;
     @Nullable
     Long ds_id;
     int status;
@@ -100,5 +101,13 @@ public class Receipt {
 
     public void setDs_id(@Nullable Long ds_id) {
         this.ds_id = ds_id;
+    }
+
+    public Date getUpdated() {
+        return updated;
+    }
+
+    public void setUpdated(Date updated) {
+        this.updated = updated;
     }
 }

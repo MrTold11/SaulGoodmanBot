@@ -1,5 +1,8 @@
 package com.mrtold.saulgoodman.logic.model;
 
+import com.google.gson.annotations.JsonAdapter;
+import com.mrtold.saulgoodman.api.AdvocateJsonAdapter;
+import com.mrtold.saulgoodman.api.ClaimJsonAdapter;
 import jakarta.persistence.*;
 
 import static jakarta.persistence.GenerationType.SEQUENCE;
@@ -20,25 +23,33 @@ public class Evidence {
     String name;
     @Column(nullable = false)
     String link;
-    Integer obtaining;
+    String obtaining;
 
-    long claim;
+    @JsonAdapter(ClaimJsonAdapter.class)
+    @ManyToOne(fetch = FetchType.EAGER)
+    Claim claim;
+
+    @JsonAdapter(AdvocateJsonAdapter.class)
+    @ManyToOne(fetch = FetchType.EAGER)
+    Advocate author;
 
     public Evidence() {}
 
-    public Evidence(long id, String name, String link, Integer obtaining, long claim) {
+    public Evidence(long id, String name, String link, String obtaining, Claim claim, Advocate author) {
         this.id = id;
         this.name = name;
         this.link = link;
         this.obtaining = obtaining;
         this.claim = claim;
+        this.author = author;
     }
 
-    public Evidence(String name, String link, Integer obtaining, long claim) {
+    public Evidence(String name, String link, String obtaining, Claim claim, Advocate author) {
         this.name = name;
         this.link = link;
         this.obtaining = obtaining;
         this.claim = claim;
+        this.author = author;
     }
 
     public long getId() {
@@ -65,19 +76,27 @@ public class Evidence {
         this.link = link;
     }
 
-    public Integer getObtaining() {
+    public String getObtaining() {
         return obtaining;
     }
 
-    public void setObtaining(Integer obtaining) {
+    public void setObtaining(String obtaining) {
         this.obtaining = obtaining;
     }
 
-    public long getClaim() {
+    public Claim getClaim() {
         return claim;
     }
 
-    public void setClaim(long claim) {
+    public void setClaim(Claim claim) {
         this.claim = claim;
+    }
+
+    public Advocate getAuthor() {
+        return author;
+    }
+
+    public void setAuthor(Advocate author) {
+        this.author = author;
     }
 }

@@ -1,22 +1,17 @@
 package com.mrtold.saulgoodman.services;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.hc.client5.http.HttpResponseException;
 
-
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.classic.methods.HttpPost;
-import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.ClassicHttpRequest;
 import org.apache.hc.core5.http.HttpException;
 import org.apache.hc.core5.http.HttpStatus;
-import org.apache.hc.core5.http.NameValuePair;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.slf4j.Logger;
@@ -30,18 +25,14 @@ public class Authentication {
     static final String DISCORD_BASE_URL = String.format("https://discord.com/api/%s/", DISCORD_API_VERSION);
     static final String ACCESS_TOKEN_URL = DISCORD_BASE_URL + "oauth2/token";
     static final String GET_USER_URL = DISCORD_BASE_URL + "users/@me";
-    
-    final BasicCredentialsProvider accessTokenCredsProvider = new BasicCredentialsProvider();
-    final List<NameValuePair> authBodyBase = new ArrayList<>(3);
 
     final Logger log = LoggerFactory.getLogger(Authentication.class);
 
     final Map<String, Long> authenticatedUsers = new HashMap<>();
 
-
-    private String clientId = "";
-    private String clientSecret = "";
-    private String redirectUri = "";
+    private final String clientId;
+    private final String clientSecret;
+    private final String redirectUri;
 
     public Authentication(String dsClientId, String dsClientSecret, String oAuth2Redirect) {
         clientId = dsClientId;
@@ -50,14 +41,12 @@ public class Authentication {
     }
 
     public Long authenticate(String code) {
-        
-        log.info("Authenticating by code : " + code);
-        log.info("Authenticated user by now : " + authenticatedUsers.toString());
+        log.info("Authenticating by code : {}", code);
+        log.info("Authenticated user by now : {}", authenticatedUsers);
 
         Long discordId = authenticatedUsers.get(code);
-        if (discordId == null) {
+        if (discordId == null)
             discordId = this.getDiscordId(this.getToken(code));
-        }
         
         return discordId;
     }
@@ -65,8 +54,8 @@ public class Authentication {
     private String getToken(String code) {
         HttpPost post = new HttpPost(ACCESS_TOKEN_URL);
         String tokenBody = String.format(
-            "client_id=%s&client_secret=%s&grant_type=authorization_code&code=%s&redirect_uri=%s",
-            clientId, clientSecret, code, redirectUri
+                "client_id=%s&client_secret=%s&grant_type=authorization_code&code=%s&redirect_uri=%s",
+                clientId, clientSecret, code, redirectUri
         );
 
         post.setEntity(new StringEntity(tokenBody));
@@ -74,11 +63,11 @@ public class Authentication {
         
         try {
             JsonObject json = executeRequest(post);
-            log.info("AUTHENTICATION -> GET TOKEN -> JSON : ", json);
+            log.info("AUTHENTICATION -> GET TOKEN -> JSON : {}", json.toString());
 
             return json.get("access_token").getAsString();
         } catch (Exception e) {
-            log.error("ERORR DURING GETTING AN ACCESS TOKEN TOKEN: ", e);
+            log.error("ERROR DURING GETTING AN ACCESS TOKEN TOKEN : ", e);
             return null;
         }
 
@@ -91,34 +80,30 @@ public class Authentication {
         try {
             JsonObject json = executeRequest(get);
 
-            log.info("AUTHENTICATION -> GET DISCORD ID -> JSON : ", json);
+            log.info("AUTHENTICATION -> GET DISCORD ID -> JSON : {}", json.toString());
 
             return Long.parseLong(json.get("id").getAsString());
         } catch (Exception e) {
-            log.error("ERORR: ", e);
+            log.error("ERROR: ", e);
             return null;
         }
 
     }
 
     private JsonObject executeRequest(ClassicHttpRequest request) throws HttpException {
-
         try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
             Object response = httpclient.execute(request, r ->
                 r.getCode() == HttpStatus.SC_OK ? EntityUtils.toString(r.getEntity()) : r.getCode());
-            
-                log.info("RESPONSE OF EXECUTING REQUEST ON AUTHENTICATION : " + response.toString());
 
-            if (response instanceof Integer) {
-                throw new HttpResponseException(Integer.parseInt(response.toString()), "Invalid response.");
-            }
-            if (response instanceof String) {
-                return JsonParser.parseString(response.toString()).getAsJsonObject();
-            }
-            else {
-                throw new JsonParseException("Response is neither Integer or String. Impossible to parse.");
-            }
-            
+            log.info("RESPONSE OF EXECUTING REQUEST ON AUTHENTICATION : {}", response.toString());
+
+            if (response instanceof Integer rCode)
+                throw new HttpResponseException(rCode, "Invalid response.");
+
+            if (response instanceof String rString)
+                return JsonParser.parseString(rString).getAsJsonObject();
+
+            throw new JsonParseException("Response is neither Integer or String. Impossible to parse.");
         } catch (Exception e) {
             throw new HttpException("Exception during HTTP Request:", e);
         }
