@@ -135,7 +135,9 @@ public class LawRequestManager extends AbstractLogicManager {
             try {
                 Message m = DsUtils.getMessageById(draft.getChannelId(), draft.getButtonMessage());
                 if (m != null) m.delete().queue();
-            } catch (Exception ignored) {}
+            } catch (Exception i) {
+                log.warn("draft message remove exception", i);
+            }
         }
     }
 
