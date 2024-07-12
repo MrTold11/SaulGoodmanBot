@@ -79,6 +79,7 @@ public class SignAgreement extends Endpoint {
         Client client = db.getOrCreateClient(clientPass, clientDsId, clientName);
         TextChannel personalChannel = DsUtils.createPersonalChannel(client.getDsUserChannel(),
                 clientName, clientDsId, advocate, clientPass, agreementNum);
+        client.setAgreement(agreementNum);
         db.updateClient(client, clientDsId, clientName, personalChannel.getIdLong());
 
         db.saveAgreement(new Agreement(agreementNum, new Date(), 1, advocate.getPassport(), clientPass));

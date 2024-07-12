@@ -202,6 +202,8 @@ public class AgreementManager extends AbstractLogicManager {
 
             Client c = db.getClientByPass(a.getClient());
             if (c != null) {
+                c.setAgreementLink(link);
+                db.saveClient(c);
                 TextChannel tc = DsUtils.getChannelById(c.getDsUserChannel());
                 if (tc != null) {
                     tc.getManager().setTopic("%s, ссылка: %s".formatted(
