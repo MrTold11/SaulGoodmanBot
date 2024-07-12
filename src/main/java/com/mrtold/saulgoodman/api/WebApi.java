@@ -1,20 +1,17 @@
 package com.mrtold.saulgoodman.api;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mrtold.saulgoodman.database.DatabaseConnector;
 import com.mrtold.saulgoodman.logic.model.*;
 import com.mrtold.saulgoodman.services.Authentication;
 
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Request;
 
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 
 import static com.mrtold.saulgoodman.discord.DsUtils.hasNotHighPermission;
@@ -32,6 +29,7 @@ public class WebApi {
         return instance;
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static void enableCORS(final String methods, final String headers) {
         options("/*", (request, response) -> {
 
@@ -69,14 +67,15 @@ public class WebApi {
     }
 
     private void init() {
-        initCommonGet("receipt", db::getReceipt);
-        initCommonGet("agreement", db::getAgreementById);
-        initCommonGet("advocate", db::getAdvocateByPass);
-        initCommonGet("client", db::getClientByPass);
+        initCommonGet("receipt", db::getReceipt, false);
+        initCommonGet("agreement", db::getAgreementById, false);
+        initCommonGet("advocate", db::getAdvocateByPass, false);
+        initCommonGet("client", db::getClientByPass, false);
+        initCommonGet("claim", db::getClaimById, true);
+        initCommonGet("evidence", db::getEvidenceById, true);
 
         get("/authenticate", (request, response) -> {
-
-            log.info("/api/authenticate REQUEST: " + request.toString());
+            log.info("/api/authenticate REQUEST: {}", request.toString());
 
             Advocate user = getAdvocate(request);
             JsonObject data = new JsonObject();
@@ -92,76 +91,112 @@ public class WebApi {
 
             String days = request.queryParams("days");
             String advocate = request.queryParams("advocate");
-            
-            List<Receipt> result = new ArrayList<Receipt>();
 
-            if (days != null) {
-                result = db.getReceipts("DAYS", days);
-            }
+            List<Receipt> receipts = null;
 
-            if (advocate != null) {
-                result =  db.getReceipts("ADVOCATE", advocate);
-            }
-            
+            if (days != null)
+                receipts = db.getReceipts("DAYS", days);
+            else if (advocate != null)
+                receipts = db.getReceipts("ADVOCATE", advocate);
+            else if (hasNotHighPermission(user.getDsUserId()))
+                receipts = db.getReceipts("ADVOCATE", user.getPassport());
 
-            if (hasNotHighPermission(user.getDsUserId())) {
-                result =  db.getReceipts("ADVOCATE", user.getPassport());
-            } else {
-                result =  db.getReceipts("ALL", null);
-            }
+            if (receipts == null)
+                halt(404);
 
-            return gson.toJson(result);
-            
+            return gson.toJson(receipts);
         });
 
-        get("/cases", (request, response) -> {
-            Advocate user = getAdvocate(request);
-
-            String client = request.queryParams("client");
-            String advocate = request.queryParams("advocate");
-            String agreement = request.queryParams("agreement");
-
-            
-            if (client != null) {
-                return db.getReceipts("CLIENT", client);
-            }
-
-            if (advocate != null) {
-                return db.getReceipts("ADVOCATE", advocate);
-            }
-            if (agreement != null) {
-                return db.getReceipts("AGREEMENT", agreement);
-            }
-            
-
-            if (hasNotHighPermission(user.getDsUserId())) {
-                return db.getReceipts("ADVOCATE", user.getPassport());
-            } else {
-                return db.getReceipts("ALL", null);
-            }
-            
+        get("/claims", (request, response) -> {
+            getAdvocate(request);
+            return gson.toJson(db.getAllClaims());
         });
 
-        get("/case/:id", (request, response) -> {
-            Advocate user = getAdvocate(request);
+        post("/new_claim", (request, response) -> {
+            getAdvocate(request);
 
-            return db.getCaseDetails(Integer.parseInt(request.params("id")));
+            JsonObject data = gson.fromJson(request.body(), JsonObject.class);
+
+            Claim claim = new Claim(
+                    data.get("description") == null ? null : data.get("description").getAsString(),
+                    data.get("type").getAsString(),
+                    data.get("number") == null ? null :data.get("number").getAsInt(),
+                    data.get("status").getAsInt(),
+                    new Date(data.get("happened").getAsLong())
+            );
+            db.saveClaim(claim);
+
+            return gson.toJson(claim.getId());
         });
 
-        post("/case/open", (request, response) -> {
-            Advocate user = getAdvocate(request);
+        post("/edit_claim", (request, response) -> {
+            getAdvocate(request);
 
-            db.openCase(request.queryParams("name"), request.queryParams("desctiption"), user);
+            JsonObject data = gson.fromJson(request.body(), JsonObject.class);
+            long id = data.get("id").getAsLong();
+            Claim claim = db.getClaimById(id);
 
-            return "Successfull!";
+            if (claim == null) halt(404);
+
+            synchronized (claim) {
+                for (Map.Entry<String, JsonElement> element : data.entrySet()) {
+                    switch (element.getKey()) {
+                        case "description" -> claim.setDescription(element.getValue().getAsString());
+                        case "type" -> claim.setType(element.getValue().getAsString());
+                        case "number" -> claim.setNumber(element.getValue().getAsInt());
+                        case "status" -> claim.setStatus(element.getValue().getAsInt());
+                        case "side" -> claim.setSide(element.getValue().getAsInt());
+                        case "happened" -> claim.setHappened(new Date(element.getValue().getAsLong()));
+                        case "sent" -> claim.setSent(new Date(element.getValue().getAsLong()));
+                        case "hearing" -> claim.setHearing(new Date(element.getValue().getAsLong()));
+                        case "forum" -> claim.setForumLink(element.getValue().getAsString());
+                        case "header" -> claim.setHeader(element.getValue().getAsString());
+                        case "payment" -> claim.setPaymentLink(element.getValue().getAsString());
+                        case "clients" -> {
+                            Set<Client> clients = new HashSet<>();
+                            for (JsonElement e : element.getValue().getAsJsonArray()) {
+                                clients.add(db.getClientByPass(e.getAsInt()));
+                            }
+                            claim.setClients(clients);
+                        }
+                        case "lawyers" -> {
+                            Set<Advocate> clients = new HashSet<>();
+                            for (JsonElement e : element.getValue().getAsJsonArray()) {
+                                clients.add(db.getAdvocateByPass(e.getAsInt()));
+                            }
+                            claim.setAdvocates(clients);
+                        }
+                        case "evidences" -> {
+                            Set<Evidence> clients = new HashSet<>();
+                            for (JsonElement e : element.getValue().getAsJsonArray()) {
+                                clients.add(db.getEvidenceById(e.getAsInt()));
+                            }
+                            claim.setEvidences(clients);
+                        }
+                    }
+                }
+
+                db.saveClaim(claim);
+            }
+
+            return 200;
         });
 
-        post("/case/close", (request, response) -> {
-            Advocate user = getAdvocate(request);
+        post("/new_evidence", (request, response) -> {
+            Advocate advocate = getAdvocate(request);
 
-            db.closeCase(Integer.parseInt(request.queryParams("caseID")), user, hasNotHighPermission(user.getDsUserId()));
-            
-            return "Successfull!";
+            JsonObject data = gson.fromJson(request.body(), JsonObject.class);
+
+            Evidence evidence = new Evidence(
+                    data.get("name").getAsString(),
+                    data.get("link").getAsString(),
+                    data.get("obtaining") == null ? null :data.get("obtaining").getAsString(),
+                    db.getClaimById(data.get("id").getAsLong()),
+                    advocate
+            );
+            db.saveEvidence(evidence);
+
+            return gson.toJson(evidence.getId());
         });
 
         get("/advocate", (request, response) -> {
@@ -170,65 +205,19 @@ public class WebApi {
             response.type("application/json");
             return gson.toJson(user);
         });
-
-        get("/dashboard", (request, response) -> {
-            Advocate user =  getAdvocate(request);
-
-            response.status(200);
-            response.type("application/json");
-
-            JsonObject jsonObject = new JsonObject();
-            JsonArray agreementsJO = new JsonArray();
-            JsonArray casesJO = new JsonArray();
-            JsonArray receiptsJO = new JsonArray();
-
-            List<Agreement> agreements = db.getAdvocateAgreements(user.getPassport(), 10);
-            List<Case> cases = db.getAdvocateCases(user.getPassport(), 10);
-            List<Receipt> receipts = db.getAdvocateReceipts(user.getPassport(), 10);
-
-            for (Agreement agreement : agreements) {
-                if (agreement.getClient() == 0) continue;
-                Client client = db.getClientByPass(agreement.getClient());
-                JsonObject agreementJO = new JsonObject();
-                agreementJO.addProperty("number", agreement.getNumber());
-                agreementJO.addProperty("client_name", client == null ? "UNKNOWN" : client.getName());
-                agreementJO.addProperty("status", agreement.getStatus());
-                agreementsJO.add(agreementJO);
-            }
-
-            for (Case c : cases) {
-                JsonObject caseJO = new JsonObject();
-                caseJO.addProperty("id", c.getId());
-                caseJO.addProperty("case_name", c.getName());
-                caseJO.addProperty("case_description", c.getDescription());
-                caseJO.addProperty("status", c.getClosed_date() == null ? 0 : 1);
-                casesJO.add(caseJO);
-            }
-
-            for (Receipt receipt : receipts) {
-                Client client = db.getClientByPass(receipt.getClient());
-                JsonObject receiptJO = new JsonObject();
-                receiptJO.addProperty("id", receipt.getId());
-                receiptJO.addProperty("client_name", client == null ? "UNKNOWN" : client.getName());
-                receiptJO.addProperty("amount", receipt.getAmount());
-                receiptJO.addProperty("status", receipt.getStatus());
-                receiptsJO.add(receiptJO);
-            }
-
-            jsonObject.add("agreements", agreementsJO);
-            jsonObject.add("cases", casesJO);
-            jsonObject.add("receipts", receiptsJO);
-
-            return gson.toJson(jsonObject);
-        });
     }
 
-    private <T> void initCommonGet(String name, Function<Integer, T> function) {
+    private <V, T> void initCommonGet(String name, Function<V, T> function, boolean isLong) {
         get("/%s/:id".formatted(name), (request, response) -> {
             getAdvocate(request);
 
-            int id = parseInt(request.params(":id"));
-            T obj = function.apply(id);
+            Object id;
+            if (isLong)
+                id = Long.parseLong(request.params(":id"));
+            else
+                id = Integer.parseInt(request.params(":id"));
+            //noinspection unchecked
+            T obj = function.apply((V) id);
             if (obj == null)
                 halt(404);
 
@@ -239,7 +228,7 @@ public class WebApi {
     }
 
     private Advocate getAdvocate(Request request) {
-        log.info("/api/authenticate COOKIE(CODE): " + request.cookie("code"));
+        log.info("/api/authenticate COOKIE(CODE): {}", request.cookie("code"));
 
         Long userId = authentication.authenticate(request.cookie("code"));
         if (userId == null) {
@@ -250,24 +239,12 @@ public class WebApi {
         Advocate advocate = db.getAdvocateByDiscord(userId);
 
         if (advocate == null || advocate.isNotActive()) {
-            if (advocate == null) {
-                log.warn("User is not advocate.");
-            } else {
-                log.warn("User is not ACTIVE advocate.");
-            }
+            if (advocate == null) log.warn("User is not advocate.");
+            else log.warn("User is not ACTIVE advocate.");
             halt(403);
         }
 
         return advocate;
-    }
-
-    private @NotNull Integer parseInt(String input) {
-        try {
-            return Integer.parseInt(input);
-        } catch (NumberFormatException e) {
-            halt(400);
-        }
-        return null;
     }
 
     public void close() {

@@ -24,12 +24,12 @@ import java.util.function.Supplier;
 public class SignAgreement extends Endpoint {
 
     final long advocateDsId;
-    final Long clientDsId;
+    final long clientDsId;
     final String clientName;
     final int clientPass, agreementNum;
     final Supplier<byte[]> clientSignatureSupplier;
 
-    public SignAgreement(long advocateDsId, Long clientDsId, String clientName, int clientPass, int agreementNum,
+    public SignAgreement(long advocateDsId, long clientDsId, String clientName, int clientPass, int agreementNum,
                          Supplier<byte[]> clientSignatureSupplier) {
         this.advocateDsId = advocateDsId;
         this.clientDsId = clientDsId;

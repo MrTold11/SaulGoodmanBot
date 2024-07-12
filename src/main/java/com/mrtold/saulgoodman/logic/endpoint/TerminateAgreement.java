@@ -39,8 +39,7 @@ public class TerminateAgreement extends Endpoint {
             return;
         }
 
-        if (client.getDsUserId() != null)
-            clientDsId = client.getDsUserId();
+        clientDsId = client.getDsUserId();
 
         Agreement a = db.getActiveAgreement(client.getPassport());
         if (a == null) {

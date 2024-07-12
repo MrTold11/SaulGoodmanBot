@@ -66,7 +66,6 @@ public class RegistryUpdateUtil {
 
     private static void registryAppendDs(Guild guild, StringBuilder sb, Client c) {
         try {
-            if (c.getDsUserId() == null) throw new RuntimeException();
             Member m = guild.retrieveMemberById(c.getDsUserId()).complete();
             sb.append(m.getAsMention());
         } catch (Exception e) {

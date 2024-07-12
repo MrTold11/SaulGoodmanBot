@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -47,7 +48,7 @@ public class UninviteAdvocate extends Endpoint {
         }
 
         targetDsId = advocate.getDsUserId();
-        advocate.setActive(0);
+        advocate.setResigned(new Date());
         db.saveAdvocate(advocate);
 
         MessageCreateData mcd = MessageCreateData.fromEmbeds(

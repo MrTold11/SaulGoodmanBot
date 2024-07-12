@@ -13,7 +13,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -36,7 +39,6 @@ public class DatabaseConnector {
 
     final Logger log;
     final SessionFactory sessionFactory;
-
     final Map<Integer, Client> clientsByPass = new ConcurrentHashMap<>();
     final Map<Long, Client> clientsByDiscord = new ConcurrentHashMap<>();
     final Map<Integer, Advocate> advocateByPass = new ConcurrentHashMap<>();
@@ -62,13 +64,12 @@ public class DatabaseConnector {
                             .addAnnotatedClass(Client.class)
                             .addAnnotatedClass(Advocate.class)
                             .addAnnotatedClass(Agreement.class)
-                            .addAnnotatedClass(AgreementCases.class)
-                            .addAnnotatedClass(Case.class)
+                            .addAnnotatedClass(Claim.class)
+                            .addAnnotatedClass(Evidence.class)
                             .addAnnotatedClass(Receipt.class)
                             .buildMetadata()
                             .buildSessionFactory();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             StandardServiceRegistryBuilder.destroy(registry);
             throw e;
         }
@@ -83,8 +84,7 @@ public class DatabaseConnector {
 
     private void cacheClient(Client client) {
         clientsByPass.put(client.getPassport(), client);
-        if (client.getDsUserId() != null)
-            clientsByDiscord.put(client.getDsUserId(), client);
+        clientsByDiscord.put(client.getDsUserId(), client);
     }
 
     private void cacheAdvocate(Advocate advocate) {
@@ -94,7 +94,7 @@ public class DatabaseConnector {
 
     public @Nullable Client getClientByPass(@Nullable Integer passport) {
         if (passport == null) return null;
-        
+
         Client client = clientsByPass.get(passport);
         if (client != null) return client;
 
@@ -102,7 +102,8 @@ public class DatabaseConnector {
             client = session.createQuery("from Client C where C.passport = :pass", Client.class)
                     .setParameter("pass", passport).getSingleResult();
             cacheClient(client);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return client;
     }
 
@@ -125,7 +126,8 @@ public class DatabaseConnector {
             client = session.createQuery("from Client C where C.dsUserId = :dsId",
                     Client.class).setParameter("dsId", dsId).getSingleResult();
             cacheClient(client);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return client;
     }
 
@@ -135,11 +137,13 @@ public class DatabaseConnector {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery("from Client C where C.dsUserChannel = :dsId",
                     Client.class).setParameter("dsId", channelId).getSingleResult();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return null;
     }
 
-    @Nullable public Client getClient(@Nullable Long dsId, Integer pass) {
+    @Nullable
+    public Client getClient(@Nullable Long dsId, Integer pass) {
         Client client = getClientByPass(pass);
         if (client != null)
             return client;
@@ -147,10 +151,10 @@ public class DatabaseConnector {
         return getClientByDiscord(dsId);
     }
 
-    public @NotNull Client getOrCreateClient(Integer passport, Long dsId, String name) {
+    public @NotNull Client getOrCreateClient(Integer passport, long dsId, String name) {
         Client client = getClientByPass(passport);
         if (client == null)
-           return saveClient(new Client(passport, dsId, name, null));
+            return saveClient(new Client(passport, dsId, name, null));
         return client;
     }
 
@@ -164,7 +168,8 @@ public class DatabaseConnector {
             advocate = session.createQuery("from Advocate A where A.dsUserId = :dsId", Advocate.class)
                     .setParameter("dsId", dsId).getSingleResult();
             cacheAdvocate(advocate);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return advocate;
     }
 
@@ -178,26 +183,52 @@ public class DatabaseConnector {
             advocate = session.createQuery("from Advocate A where A.passport = :pass", Advocate.class)
                     .setParameter("pass", pass).getSingleResult();
             cacheAdvocate(advocate);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         return advocate;
     }
 
     public @NotNull List<Agreement> getAdvocateAgreements(int pass, int limit) {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery(
-                    "from Agreement A where A.advocate = :pass order by A.id desc", Agreement.class)
+                            "from Agreement A where A.advocate = :pass order by A.id desc", Agreement.class)
                     .setMaxResults(limit)
                     .setParameter("pass", pass).getResultList();
         }
     }
 
-    public @NotNull List<Case> getAdvocateCases(int pass, int limit) {
+    public @NotNull List<Claim> getAllClaims() {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery(
-                    "select C from Case C, AgreementCases AC, Agreement A " +
-                            "where A.advocate = :pass and AC.agreement = A.id and C.id = AC.case_ " +
-                            "order by C.id desc",
-                            Case.class)
+                    "select C.id, C.type, C.happened, C.status, C.number, C.description" +
+                            " from Claim C order by C.id desc", Claim.class)
+                    .getResultList();
+        }
+    }
+
+    public Claim getClaimById(long id) {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Claim C where C.id = :id", Claim.class)
+                    .setParameter("id", id).getSingleResult();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public Evidence getEvidenceById(long id) {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Evidence E where E.id = :id", Evidence.class)
+                    .setParameter("id", id).getSingleResult();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public @NotNull List<Claim> getAdvocateCases(int pass, int limit) {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery(
+                            "select C from Claim C where :pass in elements(C.advocates) order by C.id desc",
+                            Claim.class)
                     .setMaxResults(limit)
                     .setParameter("pass", pass).getResultList();
         }
@@ -215,7 +246,7 @@ public class DatabaseConnector {
     public @NotNull List<Agreement> getActiveAgreements() {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery("from Agreement A where A.status = 1 order by A.id asc",
-                            Agreement.class).getResultList();
+                    Agreement.class).getResultList();
         }
     }
 
@@ -301,165 +332,47 @@ public class DatabaseConnector {
     public void deleteClient(@NotNull Client client) {
         sessionFactory.inTransaction(session -> session.remove(client));
         clientsByPass.remove(client.getPassport());
-        if (client.getDsUserId() != null)
-            clientsByDiscord.remove(client.getDsUserId());
+        clientsByDiscord.remove(client.getDsUserId());
     }
 
     public void deleteAgreement(@NotNull Agreement agreement) {
         sessionFactory.inTransaction(session -> session.remove(agreement));
     }
 
+    public void saveClaim(Claim claim) {
+        sessionFactory.inTransaction(session -> session.merge(claim));
+    }
 
-    @SuppressWarnings({ "deprecation", "unchecked" })
+    public void saveEvidence(Evidence evidence) {
+        sessionFactory.inTransaction(session -> session.merge(evidence));
+    }
+
+    @SuppressWarnings({"deprecation", "unchecked"})
     public List<Receipt> getReceipts(String parameter, Object value) {
-        Session session =  sessionFactory.openSession();
-        List<Receipt> result = null;
-
-
-        String queryBase = """
-                    SELECT receipt.id, receipt.issued, receipt.amount, receipt.status, advocate.name, client.name, client.dsuserchannel, receipt.ds_id
-                    FROM receipt 
-                    INNER JOIN client ON receipt.client = client.passport INNER JOIN advocate ON receipt.author = advocate.passport
-                """;
-
-        switch (parameter) {
-            case "ALL":    
-                result = session.createNativeQuery(queryBase).getResultList();
-                
-                log.info("Result of an SQL Query at RECEIPT -> ALL : \n " + result.toString());
-                break;
-            case "ADVOCATE":
-                result = session.createNativeQuery(queryBase + "WHERE advocate.passport = :value").setParameter("value", value).getResultList();
-                
-                log.info("Result of an SQL Query at RECEIPT -> ADVOCATE : \n " + result.toString());
-                break;
-            case "DAYS":
-                result = session.createNativeQuery(queryBase + "WHERE receipt.issued > current_date - interval ':value DAY'").setParameter("value", value).getResultList();
-                
-                log.info("Result of an SQL Query at RECEIPT -> DAYS : \n " + result.toString());
-                break;
-            default:
-                result = null;
-                break;
-        }
-        session.close();
-        return result;
-    }
-
-    @SuppressWarnings({ "deprecation" })
-    public void openCase(String name, String description, Advocate advocate) {
-        Session session =  sessionFactory.openSession();
-        session.createNativeQuery("""
-                INSERT INTO case 
-                (name, description, opened_date)
-                VALUES 
-                (:name, :description, current_date)
-                """).setParameter("name", name).setParameter("description", description).executeUpdate();
-        long caseID = session.createNativeQuery("""
-                SELECT id FROM case WHERE name = :name
-                """).setParameter("name", name).getFirstResult();
-        session.createNativeQuery("""
-                INSERT INTO agreements_cases 
-                (agreeement, case)
-                VALUES 
-                (-:advocateID, :caseID)
-                """).setParameter("advocateID", advocate.getPassport()).setParameter("caseID", caseID).executeUpdate();
-        session.close();
-    }
-
-    @SuppressWarnings({ "deprecation" })
-    public void closeCase(long caseID, Advocate advocate, boolean notAllowed) {
-        Session session =  sessionFactory.openSession();
-        try {
-            long isLawyerCanClose = session.createNativeQuery("""
-                    SELECT id FROM agreements_cases WHERE agreement = -:advocateID, case = :caseID
-                    """).setParameter("advocateID", advocate.getPassport()).setParameter("caseID", caseID).getResultCount();
-            
-            if (isLawyerCanClose == 1) {
-                            session.createNativeQuery("""
-                                    UPDATE case
-                                    SET closed_date = current_date
-                                    WHERE id = :caseID
-                                    """).setParameter("caseID", caseID);
-            } else {
-                if (notAllowed) {
-                    throw new Exception("This lawyer is not in this case => Is not allowed to close it.");
-                } else {
-                    session.createNativeQuery("""
-                                    UPDATE case
-                                    SET closed_date = current_date
-                                    WHERE id = :caseID
-                                    """).setParameter("caseID", caseID);
-                }
-            }
-        } catch (Exception e) {
-            log.error("Exception during CLOSE CASE : ", e);
-        }
-        session.close();
-    }
-
-    @SuppressWarnings({ "deprecation" })
-    public Case getCaseDetails(long caseID) {
         Session session = sessionFactory.openSession();
-        
-        Case result = (Case) session.createNativeQuery("""
-                    select "case".id, "case".opened_date, "case".closed_date, "case".name, "case".description, agreement.number, client.name, client.dsuserchannel, advocate.name
-                    from agreements_cases
-                    inner join agreement on agreements_cases.agreement = agreement.number
-                    inner join client on agreement.client = client.passport
-                    inner join advocate on agreement.advocate = advocate.passport
-                    inner join "case" on agreements_cases."case" = "case".id
-                    where "case".id = :caseID
-                    """).getSingleResultOrNull();
-        
-        log.info(result.toString());
-
-        session.close();
-
-        return result;
-
-    }
-
-    @SuppressWarnings({ "deprecation", "unchecked" })
-    public List<Case> getCases(String parameter, Object value) {
-        Session session =  sessionFactory.openSession();
-        List<Case> result = null;
-
+        List<Receipt> result;
 
         String queryBase = """
-                    select "case".id, "case".opened_date, "case".closed_date, "case".name, agreement.number, client.name, client.dsuserchannel, advocate.name
-                    from agreements_cases
-                    inner join agreement on agreements_cases.agreement = agreement.number
-                    inner join client on agreement.client = client.passport
-                    inner join advocate on agreement.advocate = advocate.passport
-                    inner join "case" on agreements_cases."case" = "case".id
+                SELECT receipt.id, receipt.issued, receipt.amount, receipt.status, advocate.name, client.name, client.dsuserchannel, receipt.ds_id\s
+                                    FROM receipt\s
+                                    INNER JOIN client ON receipt.client = client.passport INNER JOIN advocate ON receipt.author = advocate.passport
                 """;
 
         switch (parameter) {
             case "ALL":
-                
                 result = session.createNativeQuery(queryBase).getResultList();
-                
-                log.info("Result of an SQL Query at CASE -> ALL : \n " + result.toString());
 
-                break;            
+                log.info("Result of an SQL Query at RECEIPT -> ALL : \n {}", result.toString());
+                break;
             case "ADVOCATE":
                 result = session.createNativeQuery(queryBase + "WHERE advocate.passport = :value").setParameter("value", value).getResultList();
 
-                log.info("Result of an SQL Query at CASE -> ADVOCATE : \n " + result.toString());
-
+                log.info("Result of an SQL Query at RECEIPT -> ADVOCATE : \n {}", result.toString());
                 break;
-            case "CLIENT":
-                result = session.createNativeQuery(queryBase + "WHERE client.passport = :value").setParameter("value", value).getResultList();
+            case "DAYS":
+                result = session.createNativeQuery(queryBase + "WHERE receipt.issued > current_date - interval ':value DAY'").setParameter("value", value).getResultList();
 
-                log.info("Result of an SQL Query at CASE -> CLIENT : \n " + result.toString());
-
-                break;
-            case "AGREEMENT":
-                result = session.createNativeQuery(queryBase + "WHERE agreement.number = :value").setParameter("value", value).getResultList();
-
-                log.info("Result of an SQL Query at CASE -> AGREEMENT : \n " + result.toString());
-
+                log.info("Result of an SQL Query at RECEIPT -> DAYS : \n {}", result.toString());
                 break;
             default:
                 result = null;
@@ -468,7 +381,6 @@ public class DatabaseConnector {
         session.close();
         return result;
     }
-
 
     public void close() {
         sessionFactory.close();

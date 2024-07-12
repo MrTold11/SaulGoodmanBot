@@ -45,7 +45,6 @@ public class InviteAdvocate extends Endpoint {
             advocate.setName(advocateName);
             advocate.setSignature(signature);
             advocate.setDsUserId(advocateDsId);
-            advocate.setActive(1);
         }
 
         db.saveAdvocate(advocate);
