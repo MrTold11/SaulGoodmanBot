@@ -129,7 +129,10 @@ public class LawRequestManager extends AbstractLogicManager {
     }
 
     private void checkDraftOverride(@Nullable LawRequestDraft draft) {
-        if (draft == null) return;
+        if (draft == null) {
+            log.warn("draft null");
+            return;
+        }
 
         if (draft.getButtonMessage() != null) {
             try {
@@ -169,7 +172,10 @@ public class LawRequestManager extends AbstractLogicManager {
         event.getHook().sendMessage(s.get("embed.title.law_request")).setActionRow(
                 Button.success("lrd_open", s.get("embed.button.edit")),
                 Button.danger("lrd_cancel", s.get("embed.button.cancel"))
-        ).queue(m -> draft.setButtonMessage(m.getIdLong()));
+        ).queue(m -> {
+            draft.setButtonMessage(m.getIdLong());
+            log.warn("draft message id: {}", m.getIdLong());
+        });
     }
 
 }
