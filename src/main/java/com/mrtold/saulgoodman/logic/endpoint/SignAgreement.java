@@ -28,15 +28,17 @@ public class SignAgreement extends Endpoint {
     final String clientName;
     final int clientPass, agreementNum;
     final Supplier<byte[]> clientSignatureSupplier;
+    final boolean free;
 
     public SignAgreement(long advocateDsId, long clientDsId, String clientName, int clientPass, int agreementNum,
-                         Supplier<byte[]> clientSignatureSupplier) {
+                         Supplier<byte[]> clientSignatureSupplier, boolean free) {
         this.advocateDsId = advocateDsId;
         this.clientDsId = clientDsId;
         this.clientName = clientName;
         this.clientPass = clientPass;
         this.agreementNum = agreementNum;
         this.clientSignatureSupplier = clientSignatureSupplier;
+        this.free = free;
     }
 
     @Override
@@ -100,9 +102,11 @@ public class SignAgreement extends Endpoint {
 
         onSuccessEP();
 
-        new OpenBill(client, advocate, config.getDefaultBillAmount())
-                .onFailure(s -> log.warn("Couldn't open bill on agreement sign: {}", s))
-                .execute();
+        if (!free) {
+            new OpenBill(client, advocate, config.getDefaultBillAmount())
+                    .onFailure(s -> log.warn("Couldn't open bill on agreement sign: {}", s))
+                    .execute();
+        }
         RegistryUpdateUtil.updateClientsRegistry();
     }
 

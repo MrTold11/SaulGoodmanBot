@@ -117,11 +117,13 @@ public class Main {
                 s.get("cmd.arg.desc.pass"), false);
         OptionData amountOpt = new OptionData(OptionType.INTEGER, s.get("cmd.arg.amount"),
                 s.get("cmd.arg.desc.amount"), true);
+        OptionData freeAgreementOptNotReq = new OptionData(OptionType.BOOLEAN, s.get("cmd.arg.free_agreement"),
+                s.get("cmd.arg.desc.free_agreement"), false);
 
         jda.updateCommands().complete();
         DsUtils.getGuild().updateCommands().complete();
         DsUtils.getGuild().updateCommands().addCommands(
-                generateMemberCommand("sign", numOpt, userOpt, nameOpt, passOpt, signImgOpt),
+                generateMemberCommand("sign", numOpt, userOpt, nameOpt, passOpt, signImgOpt, freeAgreementOptNotReq),
                 generateMemberCommand("invite", userOpt, nameOpt, passOpt, signImgOpt),
                 generateMemberCommand("uninvite", reasonOpt, userOptNotReq, passOptNotReq),
                 generateMemberCommand("request"),

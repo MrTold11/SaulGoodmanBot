@@ -72,9 +72,10 @@ public class CommandAdapter extends ListenerAdapter {
             case Main.CMD_SIGN:
                 checkNotNull(clientDsId, passport, attachment, name);
                 int num = Objects.requireNonNull(event.getOption(s.get("cmd.arg.num"), OptionMapping::getAsInt));
+                boolean free = event.getOption(s.get("cmd.arg.free_agreement"), false, OptionMapping::getAsBoolean);
                 //noinspection DataFlowIssue
                 new SignAgreement(advocateId, clientDsId, name, passport, num,
-                        DsUtils.attachmentSupplier(attachment))
+                        DsUtils.attachmentSupplier(attachment), free)
                         .exec(successFunc.apply("str.cmd_success"), failureConsumer);
                 break;
 
