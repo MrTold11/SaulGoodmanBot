@@ -81,7 +81,7 @@ public class AgreementManager extends AbstractLogicManager {
                 tc.upsertPermissionOverride(e.getMember()).grant(Permission.VIEW_CHANNEL).queue();
                 e.getMessage().editMessage(s.get("str.request_accepted_by") +
                         Objects.requireNonNull(e.getMember()).getAsMention()).setComponents().queue();
-                e.getHook().sendMessage(s.get("str.request_accepted")).queue(MSG_DELETE_10);
+                e.getHook().sendMessage(s.get("str.request_accepted").formatted(DsUtils.getChannelAsMention(tc))).queue(MSG_DELETE_10);
             } else {
                 db.deleteClient(client);
                 tc.delete().queue();

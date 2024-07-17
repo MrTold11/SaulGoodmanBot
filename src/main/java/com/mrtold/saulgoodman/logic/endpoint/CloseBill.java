@@ -7,9 +7,6 @@ import net.dv8tion.jda.api.entities.Message;
 
 import java.util.Locale;
 
-/**
- * @author Mr_Told
- */
 public class CloseBill extends Endpoint {
 
     final long advocateDsId;
@@ -63,5 +60,4 @@ public class CloseBill extends Endpoint {
         onSuccessEP();
         RegistryUpdateUtil.updateReceiptRegistry();
     }
-
 }
