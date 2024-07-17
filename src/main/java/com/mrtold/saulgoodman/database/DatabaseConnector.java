@@ -200,7 +200,7 @@ public class DatabaseConnector {
     public @NotNull List<Claim> getAllClaims() {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery(
-                    "select C.id, C.type, C.happened, C.status, C.number, C.description" +
+                    "select new com.mrtold.saulgoodman.logic.model.Claim(C.id, C.description, C.type, C.number, C.status, C.happened)" +
                             " from Claim C order by C.id desc", Claim.class)
                     .getResultList();
         }

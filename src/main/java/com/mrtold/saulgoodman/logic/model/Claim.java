@@ -60,6 +60,14 @@ public class Claim {
         this.status = status;
         this.happened = happened;
     }
+    public Claim(long id, String description, String type, Integer number, int status, @NotNull Date happened) {
+        this.id = id;
+        this.description = description;
+        this.type = type;
+        this.number = number;
+        this.status = status;
+        this.happened = happened;
+    }
 
     public Evidence addEvidence(Evidence evidence) {
         evidences.add(evidence);

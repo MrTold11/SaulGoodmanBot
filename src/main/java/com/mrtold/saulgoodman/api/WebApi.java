@@ -228,7 +228,8 @@ public class WebApi {
     }
 
     private Advocate getAdvocate(Request request) {
-        log.info("/api/authenticate COOKIE(CODE): {}", request.cookie("code"));
+        log.info(request.toString());
+        log.info("COOKIE(CODE): {}", request.cookie("code"));
 
         Long userId = authentication.authenticate(request.cookie("code"));
         if (userId == null) {

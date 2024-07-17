@@ -45,11 +45,11 @@ public class Authentication {
         log.info("Authenticated user by now : {}", authenticatedUsers);
 
         Long discordId = authenticatedUsers.get(code);
-        if (discordId == null)
+        if (discordId == null) {
             discordId = this.getDiscordId(this.getToken(code));
+            authenticatedUsers.put(code, discordId);
+        }
         
-        authenticatedUsers.put(code, discordId);
-
         return discordId;
     }
 
