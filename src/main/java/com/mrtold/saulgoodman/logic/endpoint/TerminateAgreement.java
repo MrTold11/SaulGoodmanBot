@@ -49,6 +49,8 @@ public class TerminateAgreement extends Endpoint {
 
         a.setStatus(0);
         db.saveAgreement(a);
+        client.setAgreement(null);
+        db.saveClient(client);
 
         MessageCreateData mcd = MessageCreateData.fromEmbeds(
                 DsUtils.prepareEmbedBuilder(14357564, s.get("embed.title.terminate"))
