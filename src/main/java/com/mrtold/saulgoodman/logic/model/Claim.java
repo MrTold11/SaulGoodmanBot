@@ -1,9 +1,9 @@
 package com.mrtold.saulgoodman.logic.model;
 
 import com.google.gson.annotations.JsonAdapter;
-import com.mrtold.saulgoodman.api.AdvocateJsonAdapter;
+import com.mrtold.saulgoodman.api.AdvocateSetJsonAdapter;
 import com.mrtold.saulgoodman.api.ClientSetJsonAdapter;
-import com.mrtold.saulgoodman.api.EvidenceJsonAdapter;
+import com.mrtold.saulgoodman.api.EvidenceSetJsonAdapter;
 import jakarta.persistence.*;
 import org.jetbrains.annotations.NotNull;
 
@@ -42,11 +42,11 @@ public class Claim {
     @ManyToMany(fetch = FetchType.EAGER)
     Set<Client> clients;
 
-    @JsonAdapter(AdvocateJsonAdapter.class)
+    @JsonAdapter(AdvocateSetJsonAdapter.class)
     @ManyToMany(fetch = FetchType.EAGER)
     Set<Advocate> advocates;
 
-    @JsonAdapter(EvidenceJsonAdapter.class)
+    @JsonAdapter(EvidenceSetJsonAdapter.class)
     @ManyToMany(fetch = FetchType.EAGER)
     Set<Evidence> evidences;
 
