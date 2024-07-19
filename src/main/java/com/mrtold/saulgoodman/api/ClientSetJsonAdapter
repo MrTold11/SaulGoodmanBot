@@ -1,0 +1,30 @@
+package com.mrtold.saulgoodman.api;
+
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+import com.mrtold.saulgoodman.logic.model.Client;
+
+import java.io.IOException;
+import java.util.Set;
+
+/**
+ * @author Mr_Told
+ */
+public class ClientSetJsonAdapter extends TypeAdapter<Set<Client>> {
+
+    final ClientJsonAdapter clientAdapter = new ClientJsonAdapter();
+
+    @Override
+    public void write(JsonWriter out, Set<Client> value) throws IOException {
+        out.beginArray();
+        for (Client c : value)
+            clientAdapter.write(out, c);
+        out.endArray();
+    }
+
+    @Override
+    public Set<Client> read(JsonReader in) throws IOException {
+        return null;
+    }
+}
