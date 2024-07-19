@@ -13,13 +13,11 @@ import java.util.Set;
  */
 public class ClientSetJsonAdapter extends TypeAdapter<Set<Client>> {
 
-    final ClientJsonAdapter clientAdapter = new ClientJsonAdapter();
-
     @Override
     public void write(JsonWriter out, Set<Client> value) throws IOException {
         out.beginArray();
         for (Client c : value)
-            clientAdapter.write(out, c);
+            out.value(c.getPassport());
         out.endArray();
     }
 
