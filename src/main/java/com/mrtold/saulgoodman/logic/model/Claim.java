@@ -2,7 +2,7 @@ package com.mrtold.saulgoodman.logic.model;
 
 import com.google.gson.annotations.JsonAdapter;
 import com.mrtold.saulgoodman.api.AdvocateJsonAdapter;
-import com.mrtold.saulgoodman.api.ClientJsonAdapter;
+import com.mrtold.saulgoodman.api.ClientSetJsonAdapter;
 import com.mrtold.saulgoodman.api.EvidenceJsonAdapter;
 import jakarta.persistence.*;
 import org.jetbrains.annotations.NotNull;
@@ -38,7 +38,7 @@ public class Claim {
     String forumLink, paymentLink;
     String header;
 
-    @JsonAdapter(ClientJsonAdapter.class)
+    @JsonAdapter(ClientSetJsonAdapter.class)
     @ManyToMany(fetch = FetchType.EAGER)
     Set<Client> clients;
 
