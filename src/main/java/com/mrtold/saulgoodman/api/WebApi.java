@@ -160,18 +160,18 @@ public class WebApi {
                             claim.setClients(clients);
                         }
                         case "lawyers" -> {
-                            Set<Advocate> clients = new HashSet<>();
+                            Set<Advocate> lawyers = new HashSet<>();
                             for (JsonElement e : element.getValue().getAsJsonArray()) {
-                                clients.add(db.getAdvocateByPass(e.getAsInt()));
+                                lawyers.add(db.getAdvocateByPass(e.getAsInt()));
                             }
-                            claim.setAdvocates(clients);
+                            claim.setAdvocates(lawyers);
                         }
                         case "evidences" -> {
-                            Set<Evidence> clients = new HashSet<>();
+                            Set<Evidence> evidences = new HashSet<>();
                             for (JsonElement e : element.getValue().getAsJsonArray()) {
-                                clients.add(db.getEvidenceById(e.getAsInt()));
+                                evidences.add(db.getEvidenceById(e.getAsInt()));
                             }
-                            claim.setEvidences(clients);
+                            claim.setEvidences(evidences);
                         }
                     }
                 }
@@ -228,12 +228,8 @@ public class WebApi {
     }
 
     private Advocate getAdvocate(Request request) {
-        log.info(request.toString());
-        log.info("COOKIE(CODE): {}", request.cookie("code"));
-
         Long userId = authentication.authenticate(request.cookie("code"));
         if (userId == null) {
-            log.warn("/api/authenticate UNABLE TO FIND A USER (401)");
             halt(401);
         }
 

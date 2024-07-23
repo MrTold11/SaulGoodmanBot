@@ -211,6 +211,7 @@ public class DatabaseConnector {
             return session.createQuery("from Claim C where C.id = :id", Claim.class)
                     .setParameter("id", id).getSingleResult();
         } catch (Exception e) {
+            log.error(null, e);
             return null;
         }
     }
