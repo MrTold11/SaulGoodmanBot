@@ -220,17 +220,26 @@ public class WebApi {
 
         post("/new_evidence", (request, response) -> {
             Advocate advocate = getAdvocate(request);
-
             JsonObject data = gson.fromJson(request.body(), JsonObject.class);
+            Claim claim = db.getClaimById(data.get("id").getAsLong());
+
+            log.info(data.toString());
+            log.info(claim.toString());
 
             Evidence evidence = new Evidence(
                     data.get("name").getAsString(),
                     data.get("link").getAsString(),
                     data.get("obtaining") == null ? null :data.get("obtaining").getAsString(),
-                    db.getClaimById(data.get("id").getAsLong()),
+                    claim,
                     advocate
             );
+            log.info("1");
             db.saveEvidence(evidence);
+            log.info("2");
+            claim.addEvidence(evidence);
+            log.info("3");
+            db.saveClaim(claim);
+            log.info("4");
 
             return gson.toJson(evidence.getId());
         });
