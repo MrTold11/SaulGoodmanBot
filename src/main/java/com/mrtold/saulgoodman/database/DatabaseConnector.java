@@ -197,7 +197,7 @@ public class DatabaseConnector {
         }
     }
 
-    public @NotNull List<Claim> getAllClaims() {
+    public @NotNull List<Claim> getAllClaimsShort() {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery(
                     "select new com.mrtold.saulgoodman.logic.model.Claim(C.id, C.description, C.type, C.number, C.status, C.happened)" +
@@ -303,6 +303,24 @@ public class DatabaseConnector {
             return session.createQuery("from Client", Client.class).getResultList();
         }
     }
+    public @NotNull List<Client> getAllClientsShort() {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("select new com.mrtold.saulgoodman.logic.model.Client(C.passport, C.name)" + 
+            " from Client C", Client.class).getResultList();
+        }
+    }
+    public @NotNull List<Advocate> getAllAdvocates() {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("from Advocate", Advocate.class).getResultList();
+        }
+    }
+    public @NotNull List<Advocate> getAllAdvocatesShort() {
+        try (Session session = sessionFactory.openSession()) {
+            return session.createQuery("select new com.mrtold.saulgoodman.logic.model.Advocate(C.passport, C.name)" + 
+            " from Advocate A", Advocate.class).getResultList();
+        }
+    }
+
 
     public @NotNull Client saveClient(@NotNull Client client) {
         sessionFactory.inTransaction(session -> session.merge(client));

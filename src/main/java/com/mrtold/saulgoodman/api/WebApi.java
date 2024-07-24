@@ -107,9 +107,16 @@ public class WebApi {
 
         get("/claims", (request, response) -> {
             getAdvocate(request);
-            return gson.toJson(db.getAllClaims());
+            return gson.toJson(db.getAllClaimsShort());
         });
-
+        get("/clients/short", (request, response) -> {
+            getAdvocate(request);
+            return gson.toJson(db.getAllClientsShort());
+        });
+        get("/lawyers/short", (request, response) -> {
+            getAdvocate(request);
+            return gson.toJson(db.getAllAdvocatesShort());
+        });
         post("/new_claim", (request, response) -> {
             getAdvocate(request);
 

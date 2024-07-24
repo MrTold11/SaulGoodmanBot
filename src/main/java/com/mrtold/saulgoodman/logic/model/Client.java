@@ -31,6 +31,11 @@ public class Client {
         this.dsUserChannel = dsUserChannel;
     }
 
+    public Client(int passport, String name) {
+        this.passport = passport;
+        this.name = name;
+    }
+
     public Client() {}
 
     public int getPassport() {

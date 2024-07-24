@@ -35,6 +35,11 @@ public class Advocate {
         this.joined = new Date();
     }
 
+    public Advocate(int passport, String name) {
+        this.passport = passport;
+        this.name = name;
+    }
+
     public Advocate(int passport, String name, long dsUserId, int role, byte[] signature,
                     String passLink, String licenseLink, String signatureLink, String profilePicture,
                     Integer phone, Date joined, Date resigned) {
