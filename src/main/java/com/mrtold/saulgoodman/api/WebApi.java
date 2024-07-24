@@ -161,6 +161,29 @@ public class WebApi {
 
             return 200;
         });
+        post("/edit/evidence/:id", (request, response) -> {
+            getAdvocate(request);
+
+            int id = Integer.parseInt(request.params(":id"));
+            Evidence evidence = db.getEvidenceById(id);
+            if (evidence == null) halt(404);
+
+            JsonObject data = gson.fromJson(request.body(), JsonObject.class);
+
+            synchronized (evidence) {
+                for (Map.Entry<String, JsonElement> element : data.entrySet()) {
+                    switch (element.getKey()) {
+                        case "name" -> evidence.setName(element.getValue().getAsString());
+                        case "link" -> evidence.setLink(element.getValue().getAsString());
+                        case "obtaining" -> evidence.setObtaining(element.getValue().getAsString());
+                    }
+                }
+
+                db.saveEvidence(evidence);
+            }
+
+            return 200;
+        });
 
         get("/receipts", (request, response) -> {
             Advocate user = getAdvocate(request);
