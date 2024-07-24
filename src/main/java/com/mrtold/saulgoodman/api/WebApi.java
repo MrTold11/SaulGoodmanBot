@@ -115,6 +115,53 @@ public class WebApi {
             return data;
         });
         
+        post("/edit/client/:id", (request, response) -> {
+            getAdvocate(request);
+
+            int id = Integer.parseInt(request.params(":id"));
+            Client client = db.getClientByPass(id);
+            if (client == null) halt(404);
+
+            JsonObject data = gson.fromJson(request.body(), JsonObject.class);
+
+            synchronized (client) {
+                for (Map.Entry<String, JsonElement> element : data.entrySet()) {
+                    switch (element.getKey()) {
+                        case "phone" -> client.setPhone(element.getValue().getAsInt());
+                        case "passportLink" -> client.setPassportLink(element.getValue().getAsString());
+                    }
+                }
+
+                db.saveClient(client);
+            }
+
+            return 200;
+        });
+
+        post("/edit/advocate/:id", (request, response) -> {
+            getAdvocate(request);
+
+            int id = Integer.parseInt(request.params(":id"));
+            Advocate advocate = db.getAdvocateByPass(id);
+            if (advocate == null) halt(404);
+
+            JsonObject data = gson.fromJson(request.body(), JsonObject.class);
+
+            synchronized (advocate) {
+                for (Map.Entry<String, JsonElement> element : data.entrySet()) {
+                    switch (element.getKey()) {
+                        case "phone" -> advocate.setPhone(element.getValue().getAsInt());
+                        case "passportLink" -> advocate.setPassLink(element.getValue().getAsString());
+                        case "licenseLink" -> advocate.setLicenseLink(element.getValue().getAsString());
+                    }
+                }
+
+                db.saveAdvocate(advocate);
+            }
+
+            return 200;
+        });
+
         get("/receipts", (request, response) -> {
             Advocate user = getAdvocate(request);
 
@@ -222,7 +269,7 @@ public class WebApi {
             Advocate advocate = getAdvocate(request);
             JsonObject data = gson.fromJson(request.body(), JsonObject.class);
             Claim claim = db.getClaimById(data.get("id").getAsLong());
-            
+
             Evidence evidence = new Evidence(
                     data.get("name").getAsString(),
                     data.get("link").getAsString(),
