@@ -147,6 +147,16 @@ public class DsUtils {
     }
 
     @Nullable
+    public static String getDiscordName(@Nullable Long id) {
+        if (id == null) return null;
+        try {
+            return getGuild().getJDA().retrieveUserById(id).complete().getName();
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    @Nullable
     public static Long publishInitMessage(long channelId, Function<TextChannel, Long> onPublish) {
         return publishInitMessage(channelId, onPublish, null);
     }

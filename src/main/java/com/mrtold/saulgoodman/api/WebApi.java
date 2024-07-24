@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mrtold.saulgoodman.database.DatabaseConnector;
+import com.mrtold.saulgoodman.discord.DsUtils;
 import com.mrtold.saulgoodman.logic.model.*;
 import com.mrtold.saulgoodman.services.Authentication;
 
@@ -69,10 +70,40 @@ public class WebApi {
     private void init() {
         initCommonGet("receipt", db::getReceipt, false);
         initCommonGet("agreement", db::getAgreementById, false);
-        initCommonGet("advocate", db::getAdvocateByPass, false);
-        initCommonGet("client", db::getClientByPass, false);
         initCommonGet("claim", db::getClaimById, true);
         initCommonGet("evidence", db::getEvidenceById, true);
+
+        get("/client/:id", (request, response) -> {
+            getAdvocate(request);
+
+            int id = Integer.parseInt(request.params(":id"));
+            Client client = db.getClientByPass(id);
+            if (client == null)
+                halt(404);
+
+            JsonObject data = gson.fromJson(gson.toJson(client), JsonObject.class);
+            data.addProperty("discordName", DsUtils.getDiscordName(client.getDsUserId()));
+
+            response.status(200);
+            response.type("application/json");
+            return gson.toJson(data);
+        });
+
+        get("/advocate/:id", (request, response) -> {
+            getAdvocate(request);
+
+            int id = Integer.parseInt(request.params(":id"));
+            Advocate advocate = db.getAdvocateByPass(id);
+            if (advocate == null)
+                halt(404);
+
+            JsonObject data = gson.fromJson(gson.toJson(advocate), JsonObject.class);
+            data.addProperty("discordName", DsUtils.getDiscordName(advocate.getDsUserId()));
+
+            response.status(200);
+            response.type("application/json");
+            return gson.toJson(data);
+        });
 
         get("/authenticate", (request, response) -> {
             Advocate user = getAdvocate(request);

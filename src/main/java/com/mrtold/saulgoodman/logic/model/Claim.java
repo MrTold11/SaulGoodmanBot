@@ -1,9 +1,9 @@
 package com.mrtold.saulgoodman.logic.model;
 
 import com.google.gson.annotations.JsonAdapter;
-import com.mrtold.saulgoodman.api.AdvocateSetJsonAdapter;
-import com.mrtold.saulgoodman.api.ClientSetJsonAdapter;
-import com.mrtold.saulgoodman.api.EvidenceSetJsonAdapter;
+import com.mrtold.saulgoodman.api.json.AdvocateSetJsonAdapter;
+import com.mrtold.saulgoodman.api.json.ClientSetJsonAdapter;
+import com.mrtold.saulgoodman.api.json.EvidenceSetJsonAdapter;
 import jakarta.persistence.*;
 import org.jetbrains.annotations.NotNull;
 

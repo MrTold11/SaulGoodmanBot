@@ -1,23 +1,24 @@
-package com.mrtold.saulgoodman.api;
+package com.mrtold.saulgoodman.api.json;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-import com.mrtold.saulgoodman.logic.model.Advocate;
+import com.mrtold.saulgoodman.logic.model.Client;
 
 import java.io.IOException;
 
 /**
  * @author Mr_Told
  */
-public class AdvocateJsonAdapter extends TypeAdapter<Advocate> {
+public class ClientJsonAdapter extends TypeAdapter<Client> {
+
     @Override
-    public void write(JsonWriter out, Advocate value) throws IOException {
+    public void write(JsonWriter out, Client value) throws IOException {
         out.beginObject().name("passport").value(value.getPassport()).endObject();
     }
 
     @Override
-    public Advocate read(JsonReader in) throws IOException {
+    public Client read(JsonReader in) throws IOException {
         return null;
     }
 }

@@ -1,4 +1,4 @@
-package com.mrtold.saulgoodman.api;
+package com.mrtold.saulgoodman.api.json;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;

@@ -1,8 +1,8 @@
 package com.mrtold.saulgoodman.logic.model;
 
 import com.google.gson.annotations.JsonAdapter;
-import com.mrtold.saulgoodman.api.AdvocateJsonAdapter;
-import com.mrtold.saulgoodman.api.ClaimJsonAdapter;
+import com.mrtold.saulgoodman.api.json.AdvocateJsonAdapter;
+import com.mrtold.saulgoodman.api.json.ClaimJsonAdapter;
 import jakarta.persistence.*;
 
 import static jakarta.persistence.GenerationType.SEQUENCE;
