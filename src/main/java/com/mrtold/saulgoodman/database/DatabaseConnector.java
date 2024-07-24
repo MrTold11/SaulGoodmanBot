@@ -363,17 +363,17 @@ public class DatabaseConnector {
             case "ALL":
                 result = session.createNativeQuery(queryBase).getResultList();
 
-                log.info("Result of an SQL Query at RECEIPT -> ALL : \n {}", result.toString());
+                log.debug("Result of an SQL Query at RECEIPT -> ALL : \n {}", result.toString());
                 break;
             case "ADVOCATE":
                 result = session.createNativeQuery(queryBase + "WHERE advocate.passport = :value").setParameter("value", value).getResultList();
 
-                log.info("Result of an SQL Query at RECEIPT -> ADVOCATE : \n {}", result.toString());
+                log.debug("Result of an SQL Query at RECEIPT -> ADVOCATE : \n {}", result.toString());
                 break;
             case "DAYS":
                 result = session.createNativeQuery(queryBase + "WHERE receipt.issued > current_date - interval ':value DAY'").setParameter("value", value).getResultList();
 
-                log.info("Result of an SQL Query at RECEIPT -> DAYS : \n {}", result.toString());
+                log.debug("Result of an SQL Query at RECEIPT -> DAYS : \n {}", result.toString());
                 break;
             default:
                 result = null;

@@ -41,8 +41,8 @@ public class Authentication {
     }
 
     public Long authenticate(String code) {
-        log.info("Authenticating by code : {}", code);
-        log.info("Authenticated user by now : {}", authenticatedUsers);
+        log.debug("Authenticating by code : {}", code);
+        log.debug("Authenticated user by now : {}", authenticatedUsers);
 
         Long discordId = authenticatedUsers.get(code);
         if (discordId == null) {
@@ -65,7 +65,7 @@ public class Authentication {
         
         try {
             JsonObject json = executeRequest(post);
-            log.info("AUTHENTICATION -> GET TOKEN -> JSON : {}", json.toString());
+            log.debug("AUTHENTICATION -> GET TOKEN -> JSON : {}", json.toString());
 
             return json.get("access_token").getAsString();
         } catch (Exception e) {
@@ -82,7 +82,7 @@ public class Authentication {
         try {
             JsonObject json = executeRequest(get);
 
-            log.info("AUTHENTICATION -> GET DISCORD ID -> JSON : {}", json.toString());
+            log.debug("AUTHENTICATION -> GET DISCORD ID -> JSON : {}", json.toString());
 
             return Long.parseLong(json.get("id").getAsString());
         } catch (Exception e) {
@@ -97,7 +97,7 @@ public class Authentication {
             Object response = httpclient.execute(request, r ->
                 r.getCode() == HttpStatus.SC_OK ? EntityUtils.toString(r.getEntity()) : r.getCode());
 
-            log.info("RESPONSE OF EXECUTING REQUEST ON AUTHENTICATION : {}", response.toString());
+            log.debug("RESPONSE OF EXECUTING REQUEST ON AUTHENTICATION : {}", response.toString());
 
             if (response instanceof Integer rCode)
                 throw new HttpResponseException(rCode, "Invalid response.");

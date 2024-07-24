@@ -75,8 +75,6 @@ public class WebApi {
         initCommonGet("evidence", db::getEvidenceById, true);
 
         get("/authenticate", (request, response) -> {
-            log.info("/api/authenticate REQUEST: {}", request.toString());
-
             Advocate user = getAdvocate(request);
             JsonObject data = new JsonObject();
 
@@ -149,9 +147,9 @@ public class WebApi {
                         case "happened" -> claim.setHappened(new Date(element.getValue().getAsLong()));
                         case "sent" -> claim.setSent(new Date(element.getValue().getAsLong()));
                         case "hearing" -> claim.setHearing(new Date(element.getValue().getAsLong()));
-                        case "forum" -> claim.setForumLink(element.getValue().getAsString());
+                        case "forumLink" -> claim.setForumLink(element.getValue().getAsString());
                         case "header" -> claim.setHeader(element.getValue().getAsString());
-                        case "payment" -> claim.setPaymentLink(element.getValue().getAsString());
+                        case "paymentLink" -> claim.setPaymentLink(element.getValue().getAsString());
                         case "clients" -> {
                             Set<Client> clients = new HashSet<>();
                             for (JsonElement e : element.getValue().getAsJsonArray()) {
