@@ -234,7 +234,7 @@ public class WebApi {
                     advocate
             );
             log.info("1");
-            db.saveEvidence(evidence);
+            evidence = db.saveEvidence(evidence);
             log.info("2");
             claim.addEvidence(evidence);
             log.info("3");

@@ -362,8 +362,8 @@ public class DatabaseConnector {
         sessionFactory.inTransaction(session -> session.merge(claim));
     }
 
-    public void saveEvidence(Evidence evidence) {
-        sessionFactory.inTransaction(session -> session.merge(evidence));
+    public Evidence saveEvidence(Evidence evidence) {
+        return sessionFactory.fromTransaction(session -> session.merge(evidence));
     }
 
     @SuppressWarnings({"deprecation", "unchecked"})
