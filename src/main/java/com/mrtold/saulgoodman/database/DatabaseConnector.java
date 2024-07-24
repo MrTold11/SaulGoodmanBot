@@ -359,7 +359,7 @@ public class DatabaseConnector {
     }
 
     public void saveClaim(Claim claim) {
-        sessionFactory.inTransaction(session -> session.merge(claim));
+        sessionFactory.fromTransaction(session -> session.merge(claim));
     }
 
     public Evidence saveEvidence(Evidence evidence) {
