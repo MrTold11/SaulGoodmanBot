@@ -305,7 +305,7 @@ public class DatabaseConnector {
     }
     public @NotNull List<Client> getAllClientsShort() {
         try (Session session = sessionFactory.openSession()) {
-            return session.createQuery("select C.passport, C.name" +
+            return session.createQuery("select new com.mrtold.saulgoodman.logic.model.Client(C.passport, C.name)" +
             " from Client C", Client.class).getResultList();
         }
     }
@@ -316,7 +316,7 @@ public class DatabaseConnector {
     }
     public @NotNull List<Advocate> getAllAdvocatesShort() {
         try (Session session = sessionFactory.openSession()) {
-            return session.createQuery("select A.passport, A.name" +
+            return session.createQuery("select new com.mrtold.saulgoodman.logic.model.Advocate(A.passport, A.name)" + 
             " from Advocate A", Advocate.class).getResultList();
         }
     }
