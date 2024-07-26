@@ -27,8 +27,9 @@ public class Config {
     private String clientsCategory, archiveCategory;
 
     private String discordToken, discordClientId, discordClientSecret, oAuth2Redirect,
-            imgurClientId, dbHost, dbName, dbUser, dbPass;
+            imgurClientId, dbHost, dbName, dbUser, dbPass, keystorePath, keystorePassword;
     private int dbPort, apiPort;
+
 
     public Config load(File configFile) throws IOException {
         JsonObject json = JsonParser.parseReader(new FileReader(configFile, StandardCharsets.UTF_8)).getAsJsonObject();
@@ -70,7 +71,20 @@ public class Config {
         dbUser = database.get("user").getAsString();
         dbPass = database.get("password").getAsString();
         dbPort = database.get("port").getAsInt();
+
+        JsonObject keystore = json.get("keystore").getAsJsonObject();
+        keystorePath = keystore.get("path").getAsString();
+        keystorePassword = keystore.get("password").getAsString();
+
         return this;
+    }
+
+
+    String getKSPath(){
+        return keystorePath;
+    }
+    String getKSPassword(){
+        return keystorePassword;
     }
 
     String getDiscordClientId() {

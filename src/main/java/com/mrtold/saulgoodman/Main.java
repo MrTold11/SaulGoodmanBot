@@ -85,7 +85,7 @@ public class Main {
                 config.getDbUser(), config.getDbPass());
 
         api = WebApi.init(config.getDiscordClientId(), config.getDiscordClientSecret(),
-                config.getOAuth2Redirect(), config.getApiPort());
+                config.getOAuth2Redirect(), config.getKSPath(), config.getKSPassword(), config.getApiPort());
 
         jda = JDABuilder.createLight(config.getDiscordToken(), Collections.emptyList())
                 .setActivity(Activity.watching("за правосудием на Sunrise"))

@@ -36,5 +36,9 @@
   },
   "api": {
     "port": 8080
+  },
+  "keystore": {
+    "path": "keystore.jks",
+    "password": ""
   }
 }

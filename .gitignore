@@ -48,3 +48,6 @@ bin/
 
 # Logs
 *.log
+
+# Key Bundles
+*.jks

@@ -25,8 +25,8 @@ public class WebApi {
 
     static WebApi instance;
 
-    public static WebApi init(String dsClientId, String dsClientSecret, String oAuth2Redirect, int port) {
-        instance = new WebApi(dsClientId, dsClientSecret, oAuth2Redirect, port);
+    public static WebApi init(String dsClientId, String dsClientSecret, String oAuth2Redirect, String keystorePath, String keystorePassword, int port) {
+        instance = new WebApi(dsClientId, dsClientSecret, oAuth2Redirect, keystorePath, keystorePassword, port);
         return instance;
     }
 
@@ -59,10 +59,11 @@ public class WebApi {
 
     final Authentication authentication;
 
-    WebApi(String dsClientId, String dsClientSecret, String oAuth2Redirect, int port) {
+    WebApi(String dsClientId, String dsClientSecret, String oAuth2Redirect, String keystorePath, String keystorePassword, int port) {
         authentication = new Authentication(dsClientId, dsClientSecret, oAuth2Redirect);
         db = DatabaseConnector.getInstance();
         port(port);
+        secure(keystorePath, keystorePassword, null, null);
         enableCORS("*", "*");
         init();
     }
