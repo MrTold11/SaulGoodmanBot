@@ -220,7 +220,7 @@ public class WebApi {
             return gson.toJson(db.getAllAdvocatesShort());
         });
         post("/new_claim", (request, response) -> {
-            getAdvocate(request);
+            Advocate advocate = getAdvocate(request);
 
             JsonObject data = gson.fromJson(request.body(), JsonObject.class);
 
@@ -231,6 +231,11 @@ public class WebApi {
                     data.get("status").getAsInt(),
                     new Date(data.get("happened").getAsLong())
             );
+            HashSet<Advocate> advocates = new HashSet<Advocate>();
+            advocates.add(advocate);
+
+            claim.setAdvocates(advocates);
+            
             db.saveClaim(claim);
 
             return gson.toJson(claim.getId());
