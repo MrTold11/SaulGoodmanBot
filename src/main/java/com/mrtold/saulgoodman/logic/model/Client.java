@@ -24,6 +24,11 @@ public class Client {
     Integer phone;
     String passportLink, agreementLink;
 
+    public Client(Integer passport, String name) {
+        this.passport = passport;
+        this.name = name;
+    }
+
     public Client(int passport, long dsUserId, String name, @Nullable Long dsUserChannel) {
         this.passport = passport;
         this.dsUserId = dsUserId;
@@ -31,11 +36,13 @@ public class Client {
         this.dsUserChannel = dsUserChannel;
     }
 
-    public Client(int passport, String name) {
+    public Client(int passport, String name, long dsUserId, Integer phone) {
         this.passport = passport;
         this.name = name;
+        this.dsUserId = dsUserId;
+        this.phone = phone;
     }
-
+    
     public Client() {}
 
     public int getPassport() {

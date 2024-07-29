@@ -53,6 +53,30 @@ public class Claim {
     public Claim() {
     }
 
+    public Claim(long id, String type, Integer number, String description, Date happened, int status, int side) {
+        this.id = id;
+        this.description = description;
+        this.type = type;
+        this.number = number;
+        this.status = status;
+        this.side = side;
+        this.happened = happened;
+    }
+    public Claim(long id, String description, String type, Integer number, int status, int side, Date happened, Date sent, Date hearing, String header, String forumLink, String paymentLink) {
+        this.id = id;
+        this.description = description;
+        this.type = type;
+        this.number = number;
+        this.status = status;
+        this.side = side;
+        this.happened = happened;
+        this.sent = sent;
+        this.hearing = hearing;
+        this.header = header;
+        this.forumLink = forumLink;
+        this.paymentLink = paymentLink;
+    }
+    @Deprecated
     public Claim(String description, String type, Integer number, int status, @NotNull Date happened) {
         this.description = description;
         this.type = type;
@@ -60,6 +84,7 @@ public class Claim {
         this.status = status;
         this.happened = happened;
     }
+    @Deprecated
     public Claim(long id, String description, String type, Integer number, int status, @NotNull Date happened) {
         this.id = id;
         this.description = description;

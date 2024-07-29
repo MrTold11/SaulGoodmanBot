@@ -8,11 +8,15 @@ import org.hibernate.SessionFactory;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
+import org.hibernate.query.Query;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Date;
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -197,6 +201,7 @@ public class DatabaseConnector {
         }
     }
 
+    @Deprecated
     public @NotNull List<Claim> getAllClaimsShort() {
         try (Session session = sessionFactory.openSession()) {
             return session.createQuery(
@@ -205,6 +210,144 @@ public class DatabaseConnector {
                     .getResultList();
         }
     }
+
+    
+    // API CLAIMS
+    public @NotNull List<Claim> getAPIClaims(int advocateID) {
+        String hql_query;
+
+        if (advocateID > 0) {
+            // Correct query with proper syntax and ordering
+            hql_query = "SELECT new com.mrtold.saulgoodman.logic.model.Claim(C.id, C.type, C.number, C.description, C.happened, C.status, C.side) FROM Claim C WHERE :advocateID IN ELEMENTS(C.advocates) ORDER BY C.id DESC";
+        } else {
+            // Query without advocate filtering
+            hql_query = "SELECT new com.mrtold.saulgoodman.logic.model.Claim(C.id, C.type, C.number, C.description, C.happened, C.status, C.side) FROM Claim C ORDER BY C.id DESC";
+        }
+
+        try (Session session = sessionFactory.openSession()) {
+            Query<Claim> query = session.createQuery(hql_query, Claim.class);
+
+            if (advocateID > 0) {
+                // Set parameter for the query
+                query.setParameter("advocateID", advocateID);
+            }
+
+            List<Claim> results = query.getResultList();
+            log.debug("Fetched claims: {}", results);
+
+            return results;
+        } catch (Exception e) {
+            log.error("Exception at (DB) GET: /api/claims", e);
+            return null;
+        }
+    }
+    public @NotNull Claim getAPIClaim(long claimID) {
+        String hql_query = "SELECT new com.mrtold.saulgoodman.logic.model.Claim(C.id, C.description, C.type, C.number, C.status, C.side, C.happened, C.sent, C.hearing, C.header, C.forumLink, C.paymentLink) FROM Claim C WHERE C.id = :claimId";
+        
+        try (Session session = sessionFactory.openSession()) {
+            Query<Claim> query = session.createQuery(hql_query, Claim.class).setParameter("claimId", claimID);
+
+            return query.getSingleResult();
+        } catch (Exception e) {
+            log.error("Exception at (DB) GET: /api/claim/:id", e);
+            return null;
+        }
+    }
+    
+    @SuppressWarnings("deprecation")
+    public @NotNull List<Long> getPermittedClaims(int advocatePassport) {
+        String sql_query = "WITH all_advocates AS (SELECT DISTINCT CA.claim_id, A.name AS advocateName, A.passport AS advocatePassport FROM advocate A INNER JOIN claim_advocate CA ON A.passport = CA.advocates_passport ) select DISTINCT C.id FROM claim C LEFT JOIN all_advocates AA ON C.id = AA.claim_id WHERE AA.advocatePassport = :advocatePassport";
+        try (Session session = sessionFactory.openSession()) {
+            Query query = session.createNativeQuery(sql_query);
+            
+            if (advocatePassport > 0){
+                query.setParameter("advocatePassport", advocatePassport);
+            }
+
+            // Fetching the result
+            List<Object[]> results = query.getResultList();
+            log.debug(results.toString());
+            List<Long> claimIDs = new ArrayList<>();
+
+            // Transforming result's Objects into Long (claim's ID data type)
+            for (Object[] row : results) {
+                claimIDs.add((Long) row[0]);
+            }
+            log.debug(claimIDs.toString());
+
+            return claimIDs;
+        } catch (Exception e) {
+            log.error("Exception at (DB) getting permitted_claims", e);
+            return null;
+        }
+    }
+
+    // API EVIDENCES
+    public @NotNull List<Evidence> getAPIClaimEvidences(long claimID) {
+        String hql_query = "SELECT new com.mrtold.saulgoodman.logic.model.Evidence(E.id, E.name, E.link, E.obtaining) FROM Evidence E WHERE E.claim = :claimID";
+
+        try (Session session = sessionFactory.openSession()) {
+            List<Evidence> results = session.createQuery(hql_query, Evidence.class).setParameter("claimID", claimID).getResultList();
+            log.debug(results.toString());
+            return results;
+        } catch (Exception e) {
+            log.error("Exception at (DB) getting claim's evidence", e);
+            return null;
+        }
+    }
+    
+    // API CLIENTS
+    public @NotNull List<Client> getAPIClaimClients(long claimID) {
+        String hql_query = "SELECT new com.mrtold.saulgoodman.logic.model.Client(C.passport, C.name, C.dsUserId, C.phone) FROM Client C JOIN C.clients CC ON C.passport = CC.clientsPassport WHERE CC.claimId = :claimID";
+
+        try (Session session = sessionFactory.openSession()) {
+            List<Client> results = session.createQuery(hql_query, Client.class).setParameter("claimID", claimID).getResultList();
+            log.debug(results.toString());
+            return results;
+        } catch (Exception e) {
+            log.error("Exception at (DB) getting claim's clients", e);
+            return null;
+        }
+    }
+    public @NotNull Client getAPIClaimClient(long claimID) {
+        String hql_query = "SELECT new com.mrtold.saulgoodman.logic.model.Client(C.passport, C.name) FROM Client C JOIN Claim.clients CC ON C.passport = CC.clientsPassport WHERE CC.claimId = :claimID";
+
+        try (Session session = sessionFactory.openSession()) {
+            Client result = session.createQuery(hql_query, Client.class).setParameter("claimID", claimID).setMaxResults(1).getSingleResult();
+            log.debug(result.toString());
+            return result;
+        } catch (Exception e) {
+            log.error("Exception at (DB) getting claim's single client", e);
+            return null;
+        }
+    }
+    
+    // API ADVOCATES
+    public @NotNull List<Advocate> getAPIClaimAdvocates(long claimID) {
+        String hql_query = "SELECT new com.mrtold.saulgoodman.logic.model.Advocate(A.passport, A.name, A.dsUserId, A.phone) FROM Advocate A JOIN C.advocates CA ON A.passport = CA.advocatesPassport WHERE CA.claimId = :claimID";
+
+        try (Session session = sessionFactory.openSession()) {
+            List<Advocate> results = session.createQuery(hql_query, Advocate.class).setParameter("claimID", claimID).getResultList();
+            log.debug(results.toString());
+            return results;
+        } catch (Exception e) {
+            log.error("Exception at (DB) getting claim's advocates", e);
+            return null;
+        }
+    }
+    public @NotNull Advocate getAPIClaimAdvocate(long claimID) {
+        String hql_query = "SELECT new com.mrtold.saulgoodman.logic.model.Advocate(A.passport, A.name) FROM Advocate A JOIN Claim.advocates CA ON A.passport = CA.advocatesPassport WHERE CA.claimId = :claimID";
+
+        try (Session session = sessionFactory.openSession()) {
+            Advocate result = session.createQuery(hql_query, Advocate.class).setParameter("claimID", claimID).setMaxResults(1).getSingleResult();
+            log.debug(result.toString());
+            return result;
+        } catch (Exception e) {
+            log.error("Exception at (DB) getting claim's single advocate", e);
+            return null;
+        }
+    }
+    
 
     public Claim getClaimById(long id) {
         try (Session session = sessionFactory.openSession()) {

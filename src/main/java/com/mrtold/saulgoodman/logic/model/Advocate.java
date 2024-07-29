@@ -39,6 +39,12 @@ public class Advocate {
         this.passport = passport;
         this.name = name;
     }
+    public Advocate(int passport, String name, long dsUserId, Integer phone) {
+        this.passport = passport;
+        this.name = name;
+        this.dsUserId = dsUserId;
+        this.phone = phone;
+    }
 
     public Advocate(int passport, String name, long dsUserId, int role, byte[] signature,
                     String passLink, String licenseLink, String signatureLink, String profilePicture,

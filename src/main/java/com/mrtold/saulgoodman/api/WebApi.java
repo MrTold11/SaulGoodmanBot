@@ -1,6 +1,7 @@
 package com.mrtold.saulgoodman.api;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mrtold.saulgoodman.database.DatabaseConnector;
@@ -12,15 +13,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import spark.Request;
 
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.function.Function;
 
 import static com.mrtold.saulgoodman.discord.DsUtils.hasNotHighPermission;
 import static spark.Spark.*;
 
-/**
- * @author Mr_Told
- */
 public class WebApi {
 
     static WebApi instance;
@@ -55,8 +54,8 @@ public class WebApi {
 
     final Logger log = LoggerFactory.getLogger(WebApi.class);
     final Gson gson = new Gson();
+    
     final DatabaseConnector db;
-
     final Authentication authentication;
 
     WebApi(String dsClientId, String dsClientSecret, String oAuth2Redirect, String keystorePath, String keystorePassword, int port) {
@@ -69,6 +68,143 @@ public class WebApi {
     }
 
     private void init() {
+
+        get("/api/claims/short", (req, res) -> {
+            Advocate advocate = getAdvocate(req);
+            List<Claim> claims = null;
+            log.info("ADV: {} calls for /claims/short", advocate.getName());
+            if (hasNotHighPermission(advocate.getDsUserId())) {
+                claims = db.getAPIClaims(advocate.getPassport());
+            } else {
+                claims = db.getAPIClaims(0);
+            }
+
+            if (claims == null) {
+                res.status(500);
+                JsonObject error = new JsonObject();
+                error.addProperty("error", "Failed to retrieve claims");
+                return gson.toJson(error);
+            }
+        
+            // Create a JSON array to hold the claims
+            JsonArray jsonArray = new JsonArray();
+        
+            // Process each claim
+            for (Claim claim : claims) {
+                // Fetch advocate and client details
+                Client client = db.getAPIClaimClient(claim.getId());
+                Advocate claimAdvocate = db.getAPIClaimAdvocate(claim.getId());
+        
+                // Create JSON objects for client and advocate
+                JsonObject clientJson = new JsonObject();
+                if (client != null) {
+                    clientJson.addProperty("name", client.getName());
+                    clientJson.addProperty("passport", client.getPassport());
+                }
+        
+                JsonObject advocateJson = new JsonObject();
+                if (claimAdvocate != null) {
+                    advocateJson.addProperty("name", claimAdvocate.getName());
+                    advocateJson.addProperty("passport", claimAdvocate.getPassport());
+                }
+        
+                // Create JSON object for the claim
+                JsonObject claimJson = new JsonObject();
+                claimJson.addProperty("id", claim.getId());
+                claimJson.addProperty("description", claim.getDescription());
+                claimJson.addProperty("type", claim.getType());
+                claimJson.addProperty("number", claim.getNumber());
+                claimJson.addProperty("status", claim.getStatus());
+                claimJson.addProperty("side", claim.getSide());
+                claimJson.addProperty("happened", claim.getHappened().toString()); // Adjust formatting if needed
+                claimJson.add("client", clientJson);
+                claimJson.add("advocate", advocateJson);
+        
+                // Add the claim to the JSON array
+                jsonArray.add(claimJson);
+            }
+        
+            // Return the JSON array as the response
+            return gson.toJson(jsonArray);
+        });
+
+        get("/api/claim/:id", (req, res) -> {
+            Advocate advocate = getAdvocate(req);
+            Long id = Long.parseLong(req.params(":id"));
+            
+            log.info("ADV: {} calls for /claim/{}", advocate.getName(), id);
+
+            // if Executive - all claims, otherwise - permitted
+            if (hasNotHighPermission(advocate.getDsUserId())) {
+                // if advocate Permitted to get claim
+                if (!db.getPermittedClaims(advocate.getPassport()).contains(id)) {
+                    res.status(406);
+                    return null;
+                }
+            }
+
+            // Fetching the data from the database
+            Claim claim = db.getAPIClaim(id);
+            List<Evidence> evidences = db.getAPIClaimEvidences(id);
+            List<Client> clients = db.getAPIClaimClients(id);
+            List<Advocate> advocates = db.getAPIClaimAdvocates(id);
+
+            // Create the main JSON object for the claim
+            JsonObject claimJson = new JsonObject();
+            claimJson.addProperty("id", claim.getId());
+            claimJson.addProperty("number", claim.getNumber());
+            claimJson.addProperty("type", claim.getType());
+            claimJson.addProperty("description", claim.getDescription());
+            claimJson.addProperty("happened", claim.getHappened().toString());
+            claimJson.addProperty("sent", claim.getSent() != null ? claim.getSent().toString() : null);
+            claimJson.addProperty("hearing", claim.getHearing() != null ? claim.getHearing().toString() : null);
+            claimJson.addProperty("status", claim.getStatus());
+            claimJson.addProperty("side", claim.getSide());
+            claimJson.addProperty("header", claim.getHeader());
+            claimJson.addProperty("forumLink", claim.getForumLink());
+            claimJson.addProperty("paymentLink", claim.getPaymentLink());
+
+            // Creating the clients array
+            JsonArray clientsArray = new JsonArray();
+            for (Client client : clients) {
+                JsonObject clientJson = new JsonObject();
+                clientJson.addProperty("passport", client.getPassport());
+                clientJson.addProperty("name", client.getName());
+                clientJson.addProperty("phone", client.getPhone());
+                clientJson.addProperty("discordName", DsUtils.getDiscordName(client.getDsUserId()));
+                clientsArray.add(clientJson);
+            }
+            claimJson.add("clients", clientsArray);
+
+            // Creating the advocates array
+            JsonArray advocatesArray = new JsonArray();
+            for (Advocate adv : advocates) {
+                JsonObject advocateJson = new JsonObject();
+                advocateJson.addProperty("passport", adv.getPassport());
+                advocateJson.addProperty("name", adv.getName());
+                advocateJson.addProperty("phone", adv.getPhone());
+                advocateJson.addProperty("discordName", DsUtils.getDiscordName(adv.getDsUserId()));
+                advocatesArray.add(advocateJson);
+            }
+            claimJson.add("advocates", advocatesArray);
+
+            // Creating the evidences array
+            JsonArray evidencesArray = new JsonArray();
+            for (Evidence evidence : evidences) {
+                JsonObject evidenceJson = new JsonObject();
+                evidenceJson.addProperty("id", evidence.getId());
+                evidenceJson.addProperty("name", evidence.getName());
+                evidenceJson.addProperty("link", evidence.getLink());
+                evidenceJson.addProperty("obtaining", evidence.getObtaining());
+                evidencesArray.add(evidenceJson);
+            }
+            claimJson.add("evidences", evidencesArray);
+
+            // Set the response type and body
+            res.type("application/json");
+            return claimJson.toString();
+        });
+
         initCommonGet("receipt", db::getReceipt, false);
         initCommonGet("agreement", db::getAgreementById, false);
         initCommonGet("claim", db::getClaimById, true);

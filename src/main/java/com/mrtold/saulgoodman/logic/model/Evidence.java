@@ -44,6 +44,13 @@ public class Evidence {
         this.author = author;
     }
 
+    public Evidence(long id, String name, String link, String obtaining, Claim claim) {
+        this.id = id;
+        this.name = name;
+        this.link = link;
+        this.obtaining = obtaining;
+    }
+
     public Evidence(String name, String link, String obtaining, Claim claim, Advocate author) {
         this.name = name;
         this.link = link;
