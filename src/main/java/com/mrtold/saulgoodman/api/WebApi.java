@@ -69,7 +69,7 @@ public class WebApi {
 
     private void init() {
 
-        get("/api/claims/short", (req, res) -> {
+        get("/api/claims", (req, res) -> {
             Advocate advocate = getAdvocate(req);
             List<Claim> claims = null;
             log.info("ADV: {} calls for /claims/short", advocate.getName());
@@ -91,23 +91,13 @@ public class WebApi {
         
             // Process each claim
             for (Claim claim : claims) {
-                // Fetch advocate and client details
-                Client client = db.getAPIClaimClient(claim.getId());
-                Advocate claimAdvocate = db.getAPIClaimAdvocate(claim.getId());
-        
-                // Create JSON objects for client and advocate
                 JsonObject clientJson = new JsonObject();
-                if (client != null) {
+                claim.getClients().stream().findFirst().ifPresent(client -> {
+                    // Populate JSON object for client
                     clientJson.addProperty("name", client.getName());
                     clientJson.addProperty("passport", client.getPassport());
-                }
-        
-                JsonObject advocateJson = new JsonObject();
-                if (claimAdvocate != null) {
-                    advocateJson.addProperty("name", claimAdvocate.getName());
-                    advocateJson.addProperty("passport", claimAdvocate.getPassport());
-                }
-        
+                });
+
                 // Create JSON object for the claim
                 JsonObject claimJson = new JsonObject();
                 claimJson.addProperty("id", claim.getId());
@@ -116,9 +106,8 @@ public class WebApi {
                 claimJson.addProperty("number", claim.getNumber());
                 claimJson.addProperty("status", claim.getStatus());
                 claimJson.addProperty("side", claim.getSide());
-                claimJson.addProperty("happened", claim.getHappened().toString()); // Adjust formatting if needed
+                claimJson.addProperty("happened", claim.getHappened().toString());
                 claimJson.add("client", clientJson);
-                claimJson.add("advocate", advocateJson);
         
                 // Add the claim to the JSON array
                 jsonArray.add(claimJson);
@@ -127,7 +116,6 @@ public class WebApi {
             // Return the JSON array as the response
             return gson.toJson(jsonArray);
         });
-
         get("/api/claim/:id", (req, res) -> {
             Advocate advocate = getAdvocate(req);
             Long id = Long.parseLong(req.params(":id"));
@@ -137,7 +125,7 @@ public class WebApi {
             // if Executive - all claims, otherwise - permitted
             if (hasNotHighPermission(advocate.getDsUserId())) {
                 // if advocate Permitted to get claim
-                if (!db.getPermittedClaims(advocate.getPassport()).contains(id)) {
+                if (db.getAdvocateCases(advocate.getPassport(), 99999).contains(id)) {
                     res.status(406);
                     return null;
                 }
@@ -145,9 +133,6 @@ public class WebApi {
 
             // Fetching the data from the database
             Claim claim = db.getAPIClaim(id);
-            List<Evidence> evidences = db.getAPIClaimEvidences(id);
-            List<Client> clients = db.getAPIClaimClients(id);
-            List<Advocate> advocates = db.getAPIClaimAdvocates(id);
 
             // Create the main JSON object for the claim
             JsonObject claimJson = new JsonObject();
@@ -166,19 +151,21 @@ public class WebApi {
 
             // Creating the clients array
             JsonArray clientsArray = new JsonArray();
-            for (Client client : clients) {
+            for (Client client : claim.getClients()) {
                 JsonObject clientJson = new JsonObject();
                 clientJson.addProperty("passport", client.getPassport());
                 clientJson.addProperty("name", client.getName());
                 clientJson.addProperty("phone", client.getPhone());
                 clientJson.addProperty("discordName", DsUtils.getDiscordName(client.getDsUserId()));
+                clientJson.addProperty("agreementNumber", client.getAgreement());
+                clientJson.addProperty("agreementLink", client.getAgreementLink());
                 clientsArray.add(clientJson);
             }
             claimJson.add("clients", clientsArray);
 
             // Creating the advocates array
             JsonArray advocatesArray = new JsonArray();
-            for (Advocate adv : advocates) {
+            for (Advocate adv : claim.getAdvocates()) {
                 JsonObject advocateJson = new JsonObject();
                 advocateJson.addProperty("passport", adv.getPassport());
                 advocateJson.addProperty("name", adv.getName());
@@ -190,7 +177,7 @@ public class WebApi {
 
             // Creating the evidences array
             JsonArray evidencesArray = new JsonArray();
-            for (Evidence evidence : evidences) {
+            for (Evidence evidence : claim.getEvidences()) {
                 JsonObject evidenceJson = new JsonObject();
                 evidenceJson.addProperty("id", evidence.getId());
                 evidenceJson.addProperty("name", evidence.getName());

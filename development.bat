@@ -34,4 +34,4 @@ if %ERRORLEVEL% neq 0 (
     echo File transfer succeeded!
 )
 
-echo DEVELOPMENT Pipeline completed successfully!
+echo [BE] DEVELOPMENT Pipeline completed successfully!
