@@ -127,13 +127,20 @@ public class WebApi {
                 // if advocate Permitted to get claim
                 if (db.getAdvocateCases(advocate.getPassport(), 99999).contains(id)) {
                     res.status(406);
-                    return null;
+                    JsonObject error = new JsonObject();
+                    error.addProperty("error", "Advocate is not allowed to perform this action");
+                    return gson.toJson(error);
                 }
             }
 
             // Fetching the data from the database
             Claim claim = db.getAPIClaim(id);
-
+            if (claim == null) {
+                res.status(404);
+                JsonObject error = new JsonObject();
+                error.addProperty("error", "The claim is not found");
+                return gson.toJson(error);
+            }
             // Create the main JSON object for the claim
             JsonObject claimJson = new JsonObject();
             claimJson.addProperty("id", claim.getId());
@@ -157,6 +164,7 @@ public class WebApi {
                 clientJson.addProperty("name", client.getName());
                 clientJson.addProperty("phone", client.getPhone());
                 clientJson.addProperty("discordName", DsUtils.getDiscordName(client.getDsUserId()));
+                clientJson.addProperty("passportLink", client.getPassportLink());
                 clientJson.addProperty("agreementNumber", client.getAgreement());
                 clientJson.addProperty("agreementLink", client.getAgreementLink());
                 clientsArray.add(clientJson);
@@ -171,6 +179,9 @@ public class WebApi {
                 advocateJson.addProperty("name", adv.getName());
                 advocateJson.addProperty("phone", adv.getPhone());
                 advocateJson.addProperty("discordName", DsUtils.getDiscordName(adv.getDsUserId()));
+                advocateJson.addProperty("licenseLink", adv.getLicenseLink());
+                advocateJson.addProperty("passportLink", adv.getPassLink());
+                advocateJson.addProperty("signatureLink", adv.getSignatureLink());
                 advocatesArray.add(advocateJson);
             }
             claimJson.add("advocates", advocatesArray);

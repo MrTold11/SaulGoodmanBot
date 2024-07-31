@@ -215,35 +215,36 @@ public class DatabaseConnector {
 
     
     // API CLAIMS
-public @NotNull List<Claim> getAPIClaims(int advocateID) {
-    String hql_query;
-
-    if (advocateID > 0) {
-        hql_query = "SELECT C FROM Claim C WHERE :advocateID IN ELEMENTS(C.advocates) ORDER BY C.id DESC";
-    } else {
-        hql_query = "SELECT C FROM Claim C ORDER BY C.id DESC";
-    }
-
-    try (Session session = sessionFactory.openSession()) {
-        Query<Claim> query = session.createQuery(hql_query, Claim.class);
+    public @NotNull List<Claim> getAPIClaims(int advocateID) {
+        String hql_query;
 
         if (advocateID > 0) {
-            query.setParameter("advocateID", advocateID);
+            hql_query = "SELECT C FROM Claim C WHERE :advocateID IN ELEMENTS(C.advocates) ORDER BY C.id DESC";
+        } else {
+            hql_query = "SELECT C FROM Claim C ORDER BY C.id DESC";
         }
 
-        List<Claim> results = query.getResultList();
-        log.debug("Fetched claims: {}", results);
+        try (Session session = sessionFactory.openSession()) {
+            Query<Claim> query = session.createQuery(hql_query, Claim.class);
 
-        return results;
-    } catch (HibernateException e) {
-        log.error("Hibernate exception at (DB) GET: /api/claims", e);
-    } catch (Exception e) {
-        log.error("Unexpected exception at (DB) GET: /api/claims", e);
+            if (advocateID > 0) {
+                query.setParameter("advocateID", advocateID);
+            }
+
+            List<Claim> results = query.getResultList();
+            log.debug("Fetched claims: {}", results);
+
+            return results;
+        } catch (HibernateException e) {
+            log.error("Hibernate exception at (DB) GET: /api/claims", e);
+        } catch (Exception e) {
+            log.error("Unexpected exception at (DB) GET: /api/claims", e);
+        }
+        return Collections.emptyList();
     }
-    return Collections.emptyList();
-}
+    
     public @NotNull Claim getAPIClaim(long claimID) {
-        String hql_query = "SELECT Claim C FROM Claim C WHERE C.id = :claimId";
+        String hql_query = "FROM Claim C WHERE C.id = :claimId";
         
         try (Session session = sessionFactory.openSession()) {
             Query<Claim> query = session.createQuery(hql_query, Claim.class).setParameter("claimId", claimID);
@@ -390,10 +391,11 @@ public @NotNull List<Claim> getAPIClaims(int advocateID) {
         return sessionFactory.fromTransaction(session -> session.merge(receipt));
     }
 
-    public void updateClient(@NotNull Client old, long dsId, String name, Long dsChannelId) {
+    public void updateClient(@NotNull Client old, long dsId, String name, Long dsChannelId, int agreementNum) {
         if (name != null) old.setName(name);
         old.setDsUserId(dsId);
         old.setDsUserChannel(dsChannelId);
+        old.setAgreement(agreementNum);
         saveClient(old);
     }
 
