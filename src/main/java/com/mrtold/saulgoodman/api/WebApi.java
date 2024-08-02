@@ -69,12 +69,32 @@ public class WebApi {
 
     private void init() {
 
+        post("/api/claim", (req, res) -> {
+            Advocate requester = getAdvocate(req);
+
+            JsonObject data = gson.fromJson(req.body(), JsonObject.class);
+
+            Claim claim = new Claim(
+                    data.get("description") == null ? null : data.get("description").getAsString(),
+                    data.get("type").getAsString(),
+                    data.get("number") == null ? null :data.get("number").getAsInt(),
+                    data.get("status").getAsInt(),
+                    new Date(data.get("happened").getAsLong())
+            );
+            HashSet<Advocate> advocates = new HashSet<Advocate>();
+            advocates.add(requester);
+            claim.setAdvocates(advocates);
+            db.saveClaim(claim);
+
+            return gson.toJson(claim.getId());
+        });
+
         get("/api/claims", (req, res) -> {
-            Advocate advocate = getAdvocate(req);
+            Advocate requester = getAdvocate(req);
             List<Claim> claims = null;
-            log.info("ADV: {} calls for /claims/short", advocate.getName());
-            if (hasNotHighPermission(advocate.getDsUserId())) {
-                claims = db.getAPIClaims(advocate.getPassport());
+            log.info("ADV: {} calls for GET: /claims", requester.getName());
+            if (hasNotHighPermission(requester.getDsUserId())) {
+                claims = db.getAPIClaims(requester.getPassport());
             } else {
                 claims = db.getAPIClaims(0);
             }
@@ -117,15 +137,15 @@ public class WebApi {
             return gson.toJson(jsonArray);
         });
         get("/api/claim/:id", (req, res) -> {
-            Advocate advocate = getAdvocate(req);
+            Advocate requester = getAdvocate(req);
             Long id = Long.parseLong(req.params(":id"));
             
-            log.info("ADV: {} calls for /claim/{}", advocate.getName(), id);
+            log.info("ADV: {} calls for GET: /claim/{}", requester.getName(), id);
 
-            // if Executive - all claims, otherwise - permitted
-            if (hasNotHighPermission(advocate.getDsUserId())) {
-                // if advocate Permitted to get claim
-                if (db.getAdvocateCases(advocate.getPassport(), 99999).contains(id)) {
+            // if executive - allowed, otherwise - permitted
+            if (hasNotHighPermission(requester.getDsUserId())) {
+                // if requester permitted to get claim
+                if (db.getAdvocateCases(requester.getPassport(), 99999).contains(id)) {
                     res.status(406);
                     JsonObject error = new JsonObject();
                     error.addProperty("error", "Advocate is not allowed to perform this action");
@@ -173,15 +193,15 @@ public class WebApi {
 
             // Creating the advocates array
             JsonArray advocatesArray = new JsonArray();
-            for (Advocate adv : claim.getAdvocates()) {
+            for (Advocate advocate : claim.getAdvocates()) {
                 JsonObject advocateJson = new JsonObject();
-                advocateJson.addProperty("passport", adv.getPassport());
-                advocateJson.addProperty("name", adv.getName());
-                advocateJson.addProperty("phone", adv.getPhone());
-                advocateJson.addProperty("discordName", DsUtils.getDiscordName(adv.getDsUserId()));
-                advocateJson.addProperty("licenseLink", adv.getLicenseLink());
-                advocateJson.addProperty("passportLink", adv.getPassLink());
-                advocateJson.addProperty("signatureLink", adv.getSignatureLink());
+                advocateJson.addProperty("passport", advocate.getPassport());
+                advocateJson.addProperty("name", advocate.getName());
+                advocateJson.addProperty("phone", advocate.getPhone());
+                advocateJson.addProperty("discordName", DsUtils.getDiscordName(advocate.getDsUserId()));
+                advocateJson.addProperty("licenseLink", advocate.getLicenseLink());
+                advocateJson.addProperty("passportLink", advocate.getPassLink());
+                advocateJson.addProperty("signatureLink", advocate.getSignatureLink());
                 advocatesArray.add(advocateJson);
             }
             claimJson.add("advocates", advocatesArray);
@@ -201,6 +221,238 @@ public class WebApi {
             // Set the response type and body
             res.type("application/json");
             return claimJson.toString();
+        });
+        post("/api/claim/:id", (req, res) -> {
+            Advocate advocate = getAdvocate(req);
+            Long id = Long.parseLong(req.params(":id"));
+            
+            log.info("ADV: {} calls for POST: /claim/{}", advocate.getName(), id);
+
+            JsonObject data = gson.fromJson(req.body(), JsonObject.class);
+            
+            // if executive - allowed, otherwise - permitted
+            if (hasNotHighPermission(advocate.getDsUserId())) {
+                // if advocate Permitted to get claim
+                if (db.getAdvocateCases(advocate.getPassport(), 99999).contains(id)) {
+                    res.status(406);
+                    JsonObject error = new JsonObject();
+                    error.addProperty("error", "Advocate is not allowed to perform this action");
+                    return gson.toJson(error);
+                }
+            }
+
+            // Fetching the data from the database
+            Claim claim = db.getAPIClaim(id);
+            if (claim == null) {
+                res.status(404);
+                JsonObject error = new JsonObject();
+                error.addProperty("error", "The claim is not found");
+                return gson.toJson(error);
+            }
+
+            synchronized (claim) {
+                for (Map.Entry<String, JsonElement> element : data.entrySet()) {
+                    switch (element.getKey()) {
+                        case "number" -> claim.setNumber(element.getValue().getAsInt());
+                        case "type" -> claim.setType(element.getValue().getAsString());
+                        case "description" -> claim.setDescription(element.getValue().getAsString());
+                        case "happened" -> claim.setHappened(new Date(element.getValue().getAsLong()));
+                        case "sent" -> claim.setSent(new Date(element.getValue().getAsLong()));
+                        case "hearing" -> claim.setHearing(new Date(element.getValue().getAsLong()));
+                        case "status" -> claim.setStatus(element.getValue().getAsInt());
+                        case "side" -> claim.setSide(element.getValue().getAsInt());
+                        case "header" -> claim.setHeader(element.getValue().getAsString());
+                        case "forumLink" -> claim.setForumLink(element.getValue().getAsString());
+                        case "paymentLink" -> claim.setPaymentLink(element.getValue().getAsString());
+                    }
+                }
+
+                db.saveClaim(claim);
+            }
+            return 200;
+        });
+
+        get("/api/advocates/", (req, res) -> {
+            getAdvocate(req);
+            return gson.toJson(db.getAllAdvocatesShort());
+        });
+        post("/api/claim/:id/advocate/:passport", (req, res) -> {
+            Advocate requester = getAdvocate(req);
+            Long id = Long.parseLong(req.params(":id"));
+            Integer passport = Integer.parseInt(req.params(":passport"));
+
+            Claim claim = db.getClaimById(id);
+            Advocate advocate = db.getAdvocateByPass(passport);
+            
+            if (claim == null || advocate == null) {
+                return 404;
+            }
+
+            claim.getAdvocates().add(advocate);
+            db.saveClaim(claim);
+
+            return 200;
+        });
+        post("/api/claim/:id/advocate/:passport/remove", (req, res) -> {
+            Advocate requester = getAdvocate(req);
+            Long id = Long.parseLong(req.params(":id"));
+            Integer passport = Integer.parseInt(req.params(":passport"));
+
+            Claim claim = db.getClaimById(id);
+            Advocate advocate = db.getAdvocateByPass(passport);
+            
+            claim.getAdvocates().remove(advocate);
+            db.saveClaim(claim);
+
+            if (claim == null || advocate == null) {
+                return 404;
+            }
+
+            claim.getAdvocates().add(advocate);
+            db.saveClaim(claim);
+
+            return 200;
+        });
+        post("/api/advocate/:id", (req, res) -> {
+            getAdvocate(req);
+
+            int id = Integer.parseInt(req.params(":id"));
+            Advocate advocate = db.getAdvocateByPass(id);
+            if (advocate == null) halt(404);
+
+            JsonObject data = gson.fromJson(req.body(), JsonObject.class);
+
+            synchronized (advocate) {
+                for (Map.Entry<String, JsonElement> element : data.entrySet()) {
+                    switch (element.getKey()) {
+                        case "phone" -> advocate.setPhone(element.getValue().getAsInt());
+                        case "passportLink" -> advocate.setPassLink(element.getValue().getAsString());
+                        case "licenseLink" -> advocate.setLicenseLink(element.getValue().getAsString());
+                    }
+                }
+
+                db.saveAdvocate(advocate);
+            }
+
+            return 200;
+        });
+
+        get("/api/clients/", (req, res) -> {
+            getAdvocate(req);
+            return gson.toJson(db.getAllClientsShort());
+        });
+        post("/api/claim/:id/client/:passport", (req, res) -> {
+            Advocate requester = getAdvocate(req);
+            Long id = Long.parseLong(req.params(":id"));
+            Integer passport = Integer.parseInt(req.params(":passport"));
+
+            Claim claim = db.getClaimById(id);
+            Client client = db.getClientByPass(passport);
+            
+            if (claim == null || client == null) {
+                return 404;
+            }
+
+            claim.getClients().add(client);
+            db.saveClaim(claim);
+
+            return 200;
+        });
+        post("/api/claim/:id/client/:passport/remove", (req, res) -> {
+            Advocate requester = getAdvocate(req);
+            Long id = Long.parseLong(req.params(":id"));
+            Integer passport = Integer.parseInt(req.params(":passport"));
+
+            Claim claim = db.getClaimById(id);
+            Client client = db.getClientByPass(passport);
+            
+            claim.getAdvocates().remove(client);
+            db.saveClaim(claim);
+
+            if (claim == null || client == null) {
+                return 404;
+            }
+
+            claim.getClients().add(client);
+            db.saveClaim(claim);
+
+            return 200;
+        });
+        post("/api/client/:id", (req, res) -> {
+            getAdvocate(req);
+
+            int id = Integer.parseInt(req.params(":id"));
+            Client client = db.getClientByPass(id);
+            if (client == null) halt(404);
+
+            JsonObject data = gson.fromJson(req.body(), JsonObject.class);
+
+            synchronized (client) {
+                for (Map.Entry<String, JsonElement> element : data.entrySet()) {
+                    switch (element.getKey()) {
+                        case "phone" -> client.setPhone(element.getValue().getAsInt());
+                        case "passportLink" -> client.setPassportLink(element.getValue().getAsString());
+                    }
+                }
+
+                db.saveClient(client);
+            }
+
+            return 200;
+        });
+
+        post("/api/claim/:id/evidence/", (req, res) -> {
+            Advocate requester = getAdvocate(req);
+            Long id = Long.parseLong(req.params(":id"));
+            Claim claim = db.getClaimById(id);
+            
+            JsonObject data = gson.fromJson(req.body(), JsonObject.class);
+
+            Evidence evidence = new Evidence(
+                    data.get("name").getAsString(),
+                    data.get("link").getAsString(),
+                    data.get("obtaining") == null ? null :data.get("obtaining").getAsString(),
+                    claim,
+                    requester
+            );
+            evidence = db.saveEvidence(evidence);
+            claim.addEvidence(evidence);
+            db.saveClaim(claim);
+
+            return gson.toJson(evidence.getId());
+        });
+        post("/api/claim/:id/evidence/:idE/remove", (req, res) -> {
+            Advocate requester = getAdvocate(req);
+            Long id = Long.parseLong(req.params(":id"));
+            Long idE = Long.parseLong(req.params(":idE"));
+            
+            Claim claim = db.getClaimById(id);
+            claim.getEvidences().remove(db.getEvidenceById(idE));
+
+            return 200;
+        });
+        post("/api/evidence/:id", (req, res) -> {
+            getAdvocate(req);
+
+            int id = Integer.parseInt(req.params(":id"));
+            Evidence evidence = db.getEvidenceById(id);
+            if (evidence == null) halt(404);
+
+            JsonObject data = gson.fromJson(req.body(), JsonObject.class);
+
+            synchronized (evidence) {
+                for (Map.Entry<String, JsonElement> element : data.entrySet()) {
+                    switch (element.getKey()) {
+                        case "name" -> evidence.setName(element.getValue().getAsString());
+                        case "link" -> evidence.setLink(element.getValue().getAsString());
+                        case "obtaining" -> evidence.setObtaining(element.getValue().getAsString());
+                    }
+                }
+
+                db.saveEvidence(evidence);
+            }
+
+            return 200;
         });
 
         initCommonGet("receipt", db::getReceipt, false);
@@ -250,76 +502,6 @@ public class WebApi {
             return data;
         });
         
-        post("/edit/client/:id", (request, response) -> {
-            getAdvocate(request);
-
-            int id = Integer.parseInt(request.params(":id"));
-            Client client = db.getClientByPass(id);
-            if (client == null) halt(404);
-
-            JsonObject data = gson.fromJson(request.body(), JsonObject.class);
-
-            synchronized (client) {
-                for (Map.Entry<String, JsonElement> element : data.entrySet()) {
-                    switch (element.getKey()) {
-                        case "phone" -> client.setPhone(element.getValue().getAsInt());
-                        case "passportLink" -> client.setPassportLink(element.getValue().getAsString());
-                    }
-                }
-
-                db.saveClient(client);
-            }
-
-            return 200;
-        });
-
-        post("/edit/advocate/:id", (request, response) -> {
-            getAdvocate(request);
-
-            int id = Integer.parseInt(request.params(":id"));
-            Advocate advocate = db.getAdvocateByPass(id);
-            if (advocate == null) halt(404);
-
-            JsonObject data = gson.fromJson(request.body(), JsonObject.class);
-
-            synchronized (advocate) {
-                for (Map.Entry<String, JsonElement> element : data.entrySet()) {
-                    switch (element.getKey()) {
-                        case "phone" -> advocate.setPhone(element.getValue().getAsInt());
-                        case "passportLink" -> advocate.setPassLink(element.getValue().getAsString());
-                        case "licenseLink" -> advocate.setLicenseLink(element.getValue().getAsString());
-                    }
-                }
-
-                db.saveAdvocate(advocate);
-            }
-
-            return 200;
-        });
-        post("/edit/evidence/:id", (request, response) -> {
-            getAdvocate(request);
-
-            int id = Integer.parseInt(request.params(":id"));
-            Evidence evidence = db.getEvidenceById(id);
-            if (evidence == null) halt(404);
-
-            JsonObject data = gson.fromJson(request.body(), JsonObject.class);
-
-            synchronized (evidence) {
-                for (Map.Entry<String, JsonElement> element : data.entrySet()) {
-                    switch (element.getKey()) {
-                        case "name" -> evidence.setName(element.getValue().getAsString());
-                        case "link" -> evidence.setLink(element.getValue().getAsString());
-                        case "obtaining" -> evidence.setObtaining(element.getValue().getAsString());
-                    }
-                }
-
-                db.saveEvidence(evidence);
-            }
-
-            return 200;
-        });
-
         get("/receipts", (request, response) -> {
             Advocate user = getAdvocate(request);
 
@@ -339,112 +521,6 @@ public class WebApi {
                 halt(404);
 
             return gson.toJson(receipts);
-        });
-
-        get("/claims", (request, response) -> {
-            getAdvocate(request);
-            return gson.toJson(db.getAllClaimsShort());
-        });
-        get("/clients/short", (request, response) -> {
-            getAdvocate(request);
-            return gson.toJson(db.getAllClientsShort());
-        });
-        get("/lawyers/short", (request, response) -> {
-            getAdvocate(request);
-            return gson.toJson(db.getAllAdvocatesShort());
-        });
-        post("/new_claim", (request, response) -> {
-            Advocate advocate = getAdvocate(request);
-
-            JsonObject data = gson.fromJson(request.body(), JsonObject.class);
-
-            Claim claim = new Claim(
-                    data.get("description") == null ? null : data.get("description").getAsString(),
-                    data.get("type").getAsString(),
-                    data.get("number") == null ? null :data.get("number").getAsInt(),
-                    data.get("status").getAsInt(),
-                    new Date(data.get("happened").getAsLong())
-            );
-            HashSet<Advocate> advocates = new HashSet<Advocate>();
-            advocates.add(advocate);
-
-            claim.setAdvocates(advocates);
-            
-            db.saveClaim(claim);
-
-            return gson.toJson(claim.getId());
-        });
-
-        post("/edit_claim", (request, response) -> {
-            getAdvocate(request);
-
-            JsonObject data = gson.fromJson(request.body(), JsonObject.class);
-            long id = data.get("id").getAsLong();
-            Claim claim = db.getClaimById(id);
-
-            if (claim == null) halt(404);
-
-            synchronized (claim) {
-                for (Map.Entry<String, JsonElement> element : data.entrySet()) {
-                    switch (element.getKey()) {
-                        case "description" -> claim.setDescription(element.getValue().getAsString());
-                        case "type" -> claim.setType(element.getValue().getAsString());
-                        case "number" -> claim.setNumber(element.getValue().getAsInt());
-                        case "status" -> claim.setStatus(element.getValue().getAsInt());
-                        case "side" -> claim.setSide(element.getValue().getAsInt());
-                        case "happened" -> claim.setHappened(new Date(element.getValue().getAsLong()));
-                        case "sent" -> claim.setSent(new Date(element.getValue().getAsLong()));
-                        case "hearing" -> claim.setHearing(new Date(element.getValue().getAsLong()));
-                        case "forumLink" -> claim.setForumLink(element.getValue().getAsString());
-                        case "header" -> claim.setHeader(element.getValue().getAsString());
-                        case "paymentLink" -> claim.setPaymentLink(element.getValue().getAsString());
-                        case "clients" -> {
-                            Set<Client> clients = new HashSet<>();
-                            for (JsonElement e : element.getValue().getAsJsonArray()) {
-                                clients.add(db.getClientByPass(e.getAsInt()));
-                            }
-                            claim.setClients(clients);
-                        }
-                        case "lawyers" -> {
-                            Set<Advocate> lawyers = new HashSet<>();
-                            for (JsonElement e : element.getValue().getAsJsonArray()) {
-                                lawyers.add(db.getAdvocateByPass(e.getAsInt()));
-                            }
-                            claim.setAdvocates(lawyers);
-                        }
-                        case "evidences" -> {
-                            Set<Evidence> evidences = new HashSet<>();
-                            for (JsonElement e : element.getValue().getAsJsonArray()) {
-                                evidences.add(db.getEvidenceById(e.getAsInt()));
-                            }
-                            claim.setEvidences(evidences);
-                        }
-                    }
-                }
-
-                db.saveClaim(claim);
-            }
-
-            return 200;
-        });
-
-        post("/new_evidence", (request, response) -> {
-            Advocate advocate = getAdvocate(request);
-            JsonObject data = gson.fromJson(request.body(), JsonObject.class);
-            Claim claim = db.getClaimById(data.get("id").getAsLong());
-
-            Evidence evidence = new Evidence(
-                    data.get("name").getAsString(),
-                    data.get("link").getAsString(),
-                    data.get("obtaining") == null ? null :data.get("obtaining").getAsString(),
-                    claim,
-                    advocate
-            );
-            evidence = db.saveEvidence(evidence);
-            claim.addEvidence(evidence);
-            db.saveClaim(claim);
-
-            return gson.toJson(evidence.getId());
         });
 
         get("/advocate", (request, response) -> {

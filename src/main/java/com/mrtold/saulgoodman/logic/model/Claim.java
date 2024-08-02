@@ -76,7 +76,6 @@ public class Claim {
         this.forumLink = forumLink;
         this.paymentLink = paymentLink;
     }
-    @Deprecated
     public Claim(String description, String type, Integer number, int status, @NotNull Date happened) {
         this.description = description;
         this.type = type;
