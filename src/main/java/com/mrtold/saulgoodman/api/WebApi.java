@@ -73,7 +73,9 @@ public class WebApi {
             Advocate requester = getAdvocate(req);
 
             JsonObject data = gson.fromJson(req.body(), JsonObject.class);
-
+            
+            log.info("ADV: {} calls for POST: /claim", requester.getName());
+            
             Claim claim = new Claim(
                     data.get("description") == null ? null : data.get("description").getAsString(),
                     data.get("type").getAsString(),
@@ -284,10 +286,12 @@ public class WebApi {
             Claim claim = db.getClaimById(id);
             Advocate advocate = db.getAdvocateByPass(passport);
             
+            log.info("ADV: {} calls for POST: /claim/{}/advocate/{}", requester.getName(), id, passport);
+
             if (claim == null || advocate == null) {
                 return 404;
             }
-
+            
             claim.getAdvocates().add(advocate);
             db.saveClaim(claim);
 
@@ -297,28 +301,39 @@ public class WebApi {
             Advocate requester = getAdvocate(req);
             Long id = Long.parseLong(req.params(":id"));
             Integer passport = Integer.parseInt(req.params(":passport"));
-
+        
             Claim claim = db.getClaimById(id);
             Advocate advocate = db.getAdvocateByPass(passport);
-            
-            claim.getAdvocates().remove(advocate);
-            db.saveClaim(claim);
-
+        
+            log.info("ADV: {} calls for POST: /claim/{}/advocate/{}/remove", requester.getName(), id, passport);
+        
             if (claim == null || advocate == null) {
-                return 404;
+                res.status(404);
+                return "Not Found";
             }
+            
+            Set<Advocate> advocates = claim.getAdvocates();
 
-            claim.getAdvocates().add(advocate);
+            for (Advocate adv : advocates) {
+
+                if (adv.getPassport() == advocate.getPassport()) {
+                    advocates.remove(adv);
+                }
+            };
+
+            claim.setAdvocates(advocates);
             db.saveClaim(claim);
 
             return 200;
         });
         post("/api/advocate/:id", (req, res) -> {
-            getAdvocate(req);
+            Advocate requester = getAdvocate(req);
 
             int id = Integer.parseInt(req.params(":id"));
             Advocate advocate = db.getAdvocateByPass(id);
             if (advocate == null) halt(404);
+
+            log.info("ADV: {} calls for POST: /advocate/{}", requester.getName(), id);
 
             JsonObject data = gson.fromJson(req.body(), JsonObject.class);
 
@@ -328,6 +343,7 @@ public class WebApi {
                         case "phone" -> advocate.setPhone(element.getValue().getAsInt());
                         case "passportLink" -> advocate.setPassLink(element.getValue().getAsString());
                         case "licenseLink" -> advocate.setLicenseLink(element.getValue().getAsString());
+                        case "signatureLink" -> advocate.setSignatureLink(element.getValue().getAsString());
                     }
                 }
 
@@ -348,7 +364,9 @@ public class WebApi {
 
             Claim claim = db.getClaimById(id);
             Client client = db.getClientByPass(passport);
-            
+
+            log.info("ADV: {} calls for POST: /claim/{}/client/{}", requester.getName(), id, passport);
+
             if (claim == null || client == null) {
                 return 404;
             }
@@ -362,28 +380,37 @@ public class WebApi {
             Advocate requester = getAdvocate(req);
             Long id = Long.parseLong(req.params(":id"));
             Integer passport = Integer.parseInt(req.params(":passport"));
-
+        
             Claim claim = db.getClaimById(id);
             Client client = db.getClientByPass(passport);
             
-            claim.getAdvocates().remove(client);
-            db.saveClaim(claim);
-
+            log.info("ADV: {} calls for POST: /claim/{}/client/{}/remove", requester.getName(), id, passport);
+        
             if (claim == null || client == null) {
-                return 404;
+                res.status(404);
+                return "Not Found";
             }
 
-            claim.getClients().add(client);
-            db.saveClaim(claim);
+            Set<Client> clients = claim.getClients();
 
+            for (Client cli : clients) {
+                if (cli.getPassport() == client.getPassport()) {
+                    clients.remove(cli);
+                }
+            };
+
+            db.saveClaim(claim);
+        
             return 200;
         });
         post("/api/client/:id", (req, res) -> {
-            getAdvocate(req);
+            Advocate requester = getAdvocate(req);
 
             int id = Integer.parseInt(req.params(":id"));
             Client client = db.getClientByPass(id);
             if (client == null) halt(404);
+
+            log.info("ADV: {} calls for POST: /client/{}", requester.getName(), id);
 
             JsonObject data = gson.fromJson(req.body(), JsonObject.class);
 
@@ -392,6 +419,7 @@ public class WebApi {
                     switch (element.getKey()) {
                         case "phone" -> client.setPhone(element.getValue().getAsInt());
                         case "passportLink" -> client.setPassportLink(element.getValue().getAsString());
+                        case "agreementLink" -> client.setAgreementLink(element.getValue().getAsString());
                     }
                 }
 
@@ -405,7 +433,9 @@ public class WebApi {
             Advocate requester = getAdvocate(req);
             Long id = Long.parseLong(req.params(":id"));
             Claim claim = db.getClaimById(id);
-            
+
+            log.info("ADV: {} calls for POST: /claim/{}/evidence", requester.getName(), id);
+
             JsonObject data = gson.fromJson(req.body(), JsonObject.class);
 
             Evidence evidence = new Evidence(
@@ -426,17 +456,21 @@ public class WebApi {
             Long id = Long.parseLong(req.params(":id"));
             Long idE = Long.parseLong(req.params(":idE"));
             
+            log.info("ADV: {} calls for POST: /claim/{}/evidence/{}/remove", requester.getName(), id, idE);
+
             Claim claim = db.getClaimById(id);
             claim.getEvidences().remove(db.getEvidenceById(idE));
 
             return 200;
         });
         post("/api/evidence/:id", (req, res) -> {
-            getAdvocate(req);
+            Advocate requester = getAdvocate(req);
 
             int id = Integer.parseInt(req.params(":id"));
             Evidence evidence = db.getEvidenceById(id);
             if (evidence == null) halt(404);
+
+            log.info("ADV: {} calls for POST: /evidence/{}", requester.getName(), id);
 
             JsonObject data = gson.fromJson(req.body(), JsonObject.class);
 

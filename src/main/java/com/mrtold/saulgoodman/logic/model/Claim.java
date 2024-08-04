@@ -39,11 +39,11 @@ public class Claim {
     String header;
 
     @JsonAdapter(ClientSetJsonAdapter.class)
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     Set<Client> clients;
 
     @JsonAdapter(AdvocateSetJsonAdapter.class)
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     Set<Advocate> advocates;
 
     @JsonAdapter(EvidenceSetJsonAdapter.class)
